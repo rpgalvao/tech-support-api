@@ -1,0 +1,30 @@
+services:
+    db:
+        image: postgres:15
+        container_name: dwltech-postgres
+        restart: always
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_USER: admin
+            POSTGRES_PASSWORD: adminroot
+            POSTGRES_DB: tech_support
+        volumes:
+            - dwltechdata:/var/lib/postgresql/data
+
+    api:
+        build: .
+        container_name: dwltech-backend
+        restart: always
+        ports:
+            - "3333:3333"
+        depends_on:
+            - db
+        volumes:
+            - .:/app
+            - /app/node_modules
+        env_file:
+            - .env
+
+volumes:
+    dwltechdata:

@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EquipmentStatus {
+  EM_ANALISE
+  REPARO
+  FINALIZADO
+}
+
+model Technician {
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  password       String
+  phone          String?
+  avatar_url     String?
+  created_at     DateTime       @default(now())
+  service_orders ServiceOrder[]
+
+  @@map("technicians")
+}
+
+model Customer {
+  id            String         @id @default(uuid())
+  name          String
+  email         String?
+  phone         String?
+  zip_code      String?
+  city          String
+  state         String
+  address       String?
+  created_at    DateTime       @default(now())
+  equipments    Equipment[]
+  serviceOrders ServiceOrder[]
+
+  @@map("customers")
+}
+
+model Equipment {
+  id             String          @id @default(uuid())
+  customerId     String?
+  serial_number  String          @unique
+  description    String
+  client_name    String
+  received_at    DateTime        @default(now())
+  returned_at    DateTime?
+  status         EquipmentStatus @default(EM_ANALISE)
+  service_orders ServiceOrder[]
+  customer       Customer?       @relation(fields: [customerId], references: [id])
+
+  @@map("equipments")
+}
+
+model ServiceOrder {
+  id                   String         @id @default(uuid())
+  number               Int            @unique @default(autoincrement())
+  customerId           String
+  equipmentId          String
+  technicianId         String
+  opened_at            DateTime       @default(now())
+  closed_at            DateTime?
+  problem_description  String
+  solution_description String?
+  parts_replaced       PartReplaced[]
+
+  technician Technician? @relation(fields: [technicianId], references: [id])
+  equipment  Equipment?  @relation(fields: [equipmentId], references: [id])
+  customer   Customer    @relation(fields: [customerId], references: [id])
+
+  @@map("service_orders")
+}
+
+model PartReplaced {
+  id             String       @id @default(uuid())
+  serviceOrderId String
+  part_name      String
+  part_code      String?
+  cost           Decimal?     @db.Decimal(10, 2)
+  service_order  ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+
+  @@map("parts_replaced")
+}
