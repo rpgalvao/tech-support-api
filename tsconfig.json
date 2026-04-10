@@ -6,6 +6,7 @@
 		"strict": true,
 		"esModuleInterop": true,
 		"ignoreDeprecations": "5.0",
+		"typeRoots": ["./node_modules/@types", "./src/@types"],
 
 		/* Adicione estas para evitar problemas comuns */
 		"outDir": "./dist", // Pasta onde o código convertido para JS vai ficar
