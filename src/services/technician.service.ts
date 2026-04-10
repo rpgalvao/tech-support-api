@@ -27,3 +27,9 @@ export const createUser = async (data: Prisma.TechnicianCreateInput) => {
 
     return newTechnician;
 };
+
+export const getTechnicianByEmail = async (email: string) => {
+    const user = await prisma.technician.findUnique({ where: { email } });
+    if (!user) return null;
+    return user;
+};
