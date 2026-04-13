@@ -9,30 +9,54 @@ export const createCustomer = async (data: Prisma.CustomerCreateInput) => {
 };
 
 export const getCustomersList = async () => {
-    const customers = await prisma.customer.findMany({ orderBy: { created_at: 'desc' } });
+    const customers = await prisma.customer.findMany({ where: { active: true }, orderBy: { created_at: 'desc' } });
     return customers;
 };
 
 export const getCustomerById = async (id: string) => {
-    const customer = await prisma.customer.findUnique({ where: { id } });
+    const customer = await prisma.customer.findUnique({
+        where: {
+            id, AND: {
+                active: true
+            }
+        },
+        include: {
+            equipments: {
+                select: {
+                    serial_number: true,
+                    description: true
+                }
+            },
+            serviceOrders: true,
+        }
+    });
     if (!customer) throw new AppError('Cliente não encontrado', 404);
     return customer;
 };
 
 export const updateCustomer = async (id: string, data: Prisma.CustomerUpdateInput) => {
-    const customer = await prisma.customer.findUnique({ where: { id } });
-    if (!customer) throw new AppError('Cliente não encontrado', 404);
-    const updatedCustomer = await prisma.customer.update({
-        where: { id },
-        data
-    });
-    if (!updatedCustomer) throw new AppError('Erro ao atualizar o cliente', 400);
-    return updatedCustomer;
+    try {
+        const updatedCustomer = await prisma.customer.update({
+            where: { id },
+            data
+        });
+        return updatedCustomer;
+    } catch (error: any) {
+        if (error.code === 'P2025') {
+            throw new AppError('Cliente não encontrado', 404);
+        }
+        throw error;
+    }
 };
 
 export const deleteCustomer = async (id: string) => {
-    const customer = await prisma.customer.findUnique({ where: { id } });
-    if (!customer) throw new AppError('Cliente não encontrado', 404);
-    await prisma.customer.delete({ where: { id } });
-    return 'Cliente excluído com sucesso!';
+    try {
+        await prisma.customer.update({ where: { id }, data: { active: false } });
+        return { message: 'Cliente excluído com sucesso!' };
+    } catch (error: any) {
+        if (error.code === 'P2025') {
+            throw new AppError('Cliente não encontrado', 404);
+        }
+        throw error;
+    }
 };

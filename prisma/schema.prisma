@@ -41,6 +41,7 @@ model Customer {
   city          String
   state         String
   address       String?
+  active        Boolean        @default(true)
   created_at    DateTime       @default(now())
   equipments    Equipment[]
   serviceOrders ServiceOrder[]
