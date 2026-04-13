@@ -8,7 +8,15 @@ GET /technicians/:id → detalhes de um técnico
 PUT /technicians/:id → atualizar técnico
 DELETE /technicians/:id → remover técnico
 
-2-Equipamentos
+2-Clientes
+
+POST /customers → cadastrar técnico
+GET /customers → listar técnicos
+GET /customers/:id → detalhes de um técnico
+PUT /customers/:id → atualizar técnico
+DELETE /customers/:id → remover técnico
+
+3-Equipamentos
 
 POST /equipments → registrar entrada de equipamento
 GET /equipments → listar equipamentos
@@ -16,7 +24,7 @@ GET /equipments/:id → detalhes de um equipamento
 PUT /equipments/:id → atualizar status ou dados
 DELETE /equipments/:id → remover equipamento
 
-3-Ordens de Serviço
+4-Ordens de Serviço
 
 POST /service-orders → abrir ordem de serviço
 GET /service-orders → listar ordens
@@ -24,7 +32,7 @@ GET /service-orders/:id → detalhes da ordem
 PUT /service-orders/:id → atualizar ordem (ex: fechar)
 DELETE /service-orders/:id → remover ordem
 
-4-Peças Substituídas
+5-Peças Substituídas
 
 POST /parts-replaced → registrar peça substituída
 GET /parts-replaced/:service_order_id → listar peças de uma ordem

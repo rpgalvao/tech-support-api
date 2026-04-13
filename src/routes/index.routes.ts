@@ -1,7 +1,8 @@
 import { Router } from "express";
 import technicianRoute from "./technician.routes";
-import authRoute from "./auth.routes";
 import { authMiddleware } from "../middlewares/auth.middleware";
+import authRoute from "./auth.routes";
+import customerRoute from "./customer.routes";
 
 const route = Router();
 
@@ -13,5 +14,6 @@ route.get('/ping', (req, res) => {
 route.use('/login', authRoute);
 route.use(authMiddleware);
 route.use('/technician', technicianRoute);
+route.use('/customer', customerRoute);
 
 export default route;
