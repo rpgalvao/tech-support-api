@@ -97,7 +97,6 @@ export const updateEquipment = async (id: string, data: Prisma.EquipmentUnchecke
         if (data.status === 'FINALIZADO') {
             data.returned_at = new Date();
         }
-        console.log(data);
         const updatedEquipment = await prisma.equipment.update({
             where: { id },
             data
