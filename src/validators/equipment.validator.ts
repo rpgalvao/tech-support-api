@@ -2,9 +2,14 @@ import z from "zod";
 
 export const createEquipmentSchema = z.object({
     customerId: z.uuid().optional(),
-    serial_number: z.string().min(2, 'O número de série do equipamento precisa ter pelo menos 2 caracteres'),
+    serial_number: z.string().min(2, 'O número de série do equipamento precisa ter pelo menos 2 caracteres').toUpperCase(),
     description: z.string().min(2, 'O nome do equipamento precisa ter pelo menos 2 caracteres'),
     status: z.enum(['EM_ANALISE', 'REPARO', 'FINALIZADO']).optional(),
+});
+
+export const getEquipmentListSchema = z.object({
+    status: z.enum(['EM_ANALISE', 'REPARO', 'FINALIZADO']).optional(),
+    customerId: z.uuid().optional()
 });
 
 export const getEquipmentIdSchema = z.object({
@@ -17,7 +22,7 @@ export const getEquipmentSerialNumberSchema = z.object({
 
 export const updateEquipmentSchema = z.object({
     customerId: z.uuid().optional(),
-    serial_number: z.string().min(2, 'O número de série do equipamento precisa ter pelo menos 2 caracteres').optional(),
+    serial_number: z.string().min(2, 'O número de série do equipamento precisa ter pelo menos 2 caracteres').toUpperCase().optional(),
     description: z.string().min(2, 'O nome do equipamento precisa ter pelo menos 2 caracteres').optional(),
     status: z.enum(['EM_ANALISE', 'REPARO', 'FINALIZADO']).optional(),
 });

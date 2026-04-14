@@ -1,6 +1,7 @@
 import { AppError } from "../errors/AppError";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
+import { getCustomerById } from "./customer.service";
 
 export const createEquipment = async (data: Prisma.EquipmentUncheckedCreateInput) => {
     if (data.customerId) {
@@ -16,9 +17,22 @@ export const createEquipment = async (data: Prisma.EquipmentUncheckedCreateInput
     return equipment;
 };
 
-export const listEquipments = async () => {
+export type EquipmentFilters = {
+    status?: 'EM_ANALISE' | 'REPARO' | 'FINALIZADO';
+    customerId?: string;
+};
+
+export const listEquipments = async (filter: EquipmentFilters = {}) => {
+    if (filter.customerId) {
+        const customer = await getCustomerById(filter.customerId);
+        if (!customer) throw new AppError('Cliente informado não encontrado', 404);
+    }
     const equipments = await prisma.equipment.findMany({
-        where: { active: true },
+        where: {
+            active: true,
+            status: filter.status,
+            customerId: filter.customerId
+        },
         orderBy: { description: 'asc' },
         include: {
             customer: {
@@ -79,13 +93,11 @@ export const getEquipmentBySerialNumber = async (serial_number: string) => {
 };
 
 export const updateEquipment = async (id: string, data: Prisma.EquipmentUncheckedUpdateInput) => {
-    if (data.serial_number) {
-        const serial = data.serial_number as string;
-        const serialExists = await prisma.equipment.findFirst({ where: { serial_number: serial } });
-        if (serialExists) throw new AppError('Número de série já cadastrado no sistema', 400);
-    }
-
     try {
+        if (data.status === 'FINALIZADO') {
+            data.returned_at = new Date();
+        }
+        console.log(data);
         const updatedEquipment = await prisma.equipment.update({
             where: { id },
             data
@@ -93,6 +105,7 @@ export const updateEquipment = async (id: string, data: Prisma.EquipmentUnchecke
         return updatedEquipment;
     } catch (error: any) {
         if (error.code === 'P2025') throw new AppError('Equipamento não encontrado', 404);
+        if (error.code === 'P2002') throw new AppError('Número de série já cadastrado no sistema', 400);
         throw error;
     }
 };

@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import * as EquipmentService from "../services/equipment.service";
-import { createEquipmentSchema, getEquipmentIdSchema, getEquipmentSerialNumberSchema, updateEquipmentSchema } from "../validators/equipment.validator";
+import { createEquipmentSchema, getEquipmentIdSchema, getEquipmentListSchema, getEquipmentSerialNumberSchema, updateEquipmentSchema } from "../validators/equipment.validator";
 
 export const insertEquipment: RequestHandler = async (req, res) => {
     const data = createEquipmentSchema.parse(req.body);
@@ -9,7 +9,8 @@ export const insertEquipment: RequestHandler = async (req, res) => {
 };
 
 export const getEquipmentList: RequestHandler = async (req, res) => {
-    const equipments = await EquipmentService.listEquipments();
+    const { status, customerId } = getEquipmentListSchema.parse(req.query);
+    const equipments = await EquipmentService.listEquipments({ status, customerId });
     res.json({ success: true, data: equipments });
 };
 
