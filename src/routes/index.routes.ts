@@ -3,6 +3,7 @@ import technicianRoute from "./technician.routes";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import authRoute from "./auth.routes";
 import customerRoute from "./customer.routes";
+import equipmentRoute from "./equipment.routes";
 
 const route = Router();
 
@@ -15,5 +16,6 @@ route.use('/login', authRoute);
 route.use(authMiddleware);
 route.use('/technician', technicianRoute);
 route.use('/customer', customerRoute);
+route.use('/equipment', equipmentRoute);
 
 export default route;

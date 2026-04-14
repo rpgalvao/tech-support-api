@@ -54,9 +54,9 @@ model Equipment {
   customerId     String?
   serial_number  String          @unique
   description    String
-  client_name    String
   received_at    DateTime        @default(now())
   returned_at    DateTime?
+  active         Boolean         @default(true)
   status         EquipmentStatus @default(EM_ANALISE)
   service_orders ServiceOrder[]
   customer       Customer?       @relation(fields: [customerId], references: [id])
