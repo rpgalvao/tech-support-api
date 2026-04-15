@@ -101,7 +101,17 @@ export const getServiceOrderById = async (id: string) => {
     return serviceOrder;
 };
 
-export const updateServiceOrder = async (id: string, data: Prisma.ServiceOrderUncheckedUpdateInput) => {
+export type UpdateOSData = Prisma.ServiceOrderUncheckedUpdateInput & {
+    parts?: {
+        part_name: string;
+        part_code?: string;
+        cost?: number;
+    }[];
+};
+
+export const updateServiceOrder = async (id: string, payload: UpdateOSData) => {
+    const { parts, ...data } = payload;
+
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
@@ -110,6 +120,7 @@ export const updateServiceOrder = async (id: string, data: Prisma.ServiceOrderUn
 
     if (data.solution_description) {
         osDataToUpdate.closed_at = new Date();
+        osDataToUpdate.status = 'FINALIZADA';
 
         const equipmentUpdateQuery = prisma.equipment.update({
             where: { id: serviceOrder.equipmentId },
@@ -121,9 +132,24 @@ export const updateServiceOrder = async (id: string, data: Prisma.ServiceOrderUn
         queries.push(equipmentUpdateQuery);
     }
 
+    if (parts && parts.length > 0) {
+        osDataToUpdate.parts_replaced = {
+            create: parts
+        };
+    }
+
     const updateOSQuery = prisma.serviceOrder.update({
         where: { id },
-        data: osDataToUpdate
+        data: osDataToUpdate,
+        include: {
+            parts_replaced: {
+                select: {
+                    part_name: true,
+                    part_code: true,
+                    cost: true
+                }
+            }
+        }
     });
     queries.push(updateOSQuery);
 

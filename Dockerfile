@@ -1,20 +1,28 @@
-# Usa a imagem oficial do Node 22 na versão Alpine (mais leve e segura)
+# Usa a imagem oficial do Node 22 Alpine
 FROM node:22-alpine
 
-# Define a pasta de trabalho dentro do container
+# Instala o openssl para o motor do Prisma não "crashar" no Alpine
+RUN apk add --no-cache openssl
+
+# Define a pasta de trabalho
 WORKDIR /app
 
-# Copia apenas os arquivos de dependências primeiro (ajuda no cache do Docker)
+# Copia os arquivos de dependência PRIMEIRO
 COPY package*.json ./
+# Copia a pasta do Prisma para ele saber como gerar o cliente
+COPY prisma ./prisma/
 
 # Instala as dependências
 RUN npm install
 
-# Copia todo o resto do código da sua máquina para dentro do container
+# Copia o resto do código da máquina para o container
 COPY . .
 
-# Expõe a porta que o nosso servidor Express vai usar
+# O PULO DO GATO: Gera o Prisma Client por dentro do container!
+RUN npx prisma generate
+
+# Expõe a porta
 EXPOSE 3333
 
-# Comando para iniciar o servidor usando o script dev que criamos no package.json
+# Inicia o servidor
 CMD ["npm", "run", "dev"]
