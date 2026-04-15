@@ -100,3 +100,58 @@ export const getServiceOrderById = async (id: string) => {
 
     return serviceOrder;
 };
+
+export const updateServiceOrder = async (id: string, data: Prisma.ServiceOrderUncheckedUpdateInput) => {
+    const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
+    if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
+
+    const queries = [];
+    let osDataToUpdate = { ...data };
+
+    if (data.solution_description) {
+        osDataToUpdate.closed_at = new Date();
+
+        const equipmentUpdateQuery = prisma.equipment.update({
+            where: { id: serviceOrder.equipmentId },
+            data: {
+                status: 'FINALIZADO',
+                returned_at: new Date()
+            }
+        });
+        queries.push(equipmentUpdateQuery);
+    }
+
+    const updateOSQuery = prisma.serviceOrder.update({
+        where: { id },
+        data: osDataToUpdate
+    });
+    queries.push(updateOSQuery);
+
+    const result = await prisma.$transaction(queries);
+
+    return result[result.length - 1];
+};
+
+export const removeServiceOrder = async (id: string) => {
+    const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
+    if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
+
+    const queries = [];
+
+    if (!serviceOrder.closed_at) {
+        const revertEquipmentQuery = prisma.equipment.update({
+            where: { id: serviceOrder.equipmentId },
+            data: { status: 'EM_ANALISE' }
+        });
+        queries.push(revertEquipmentQuery);
+    }
+
+    const deleteOSQuery = prisma.serviceOrder.delete({
+        where: { id }
+    });
+    queries.push(deleteOSQuery);
+
+    await prisma.$transaction(queries);
+
+    return { message: 'Ordem de serviço excluída com sucesso' };
+};
