@@ -17,3 +17,7 @@ export const updateServiceOrderSchema = z.object({
     problem_description: z.string().min(5).max(255).optional(),
     solution_description: z.string().optional()
 });
+
+export const cancelServiceOrderSchema = z.object({
+    reason: z.string('Necessário informar o motivo do cancelamento')
+});

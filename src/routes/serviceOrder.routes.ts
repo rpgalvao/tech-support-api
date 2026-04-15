@@ -7,6 +7,6 @@ route.post('/', ServiceOrderController.createServiceOrder);
 route.get('/', ServiceOrderController.listServiceOrders);
 route.get('/:id', ServiceOrderController.listServiceOrderById);
 route.put('/:id', ServiceOrderController.updateServiceOrder);
-route.delete('/:id', ServiceOrderController.deleteServiceOrder);
+route.patch('/:id/cancel', ServiceOrderController.cancelServiceOrder);
 
 export default route;

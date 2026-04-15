@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import * as ServiceOrder from "../services/serviceOrder.service";
-import { openServiceOrderSchema, serviceOrderIdSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
+import { cancelServiceOrderSchema, openServiceOrderSchema, serviceOrderIdSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
 import { AppError } from "../errors/AppError";
 
 export const createServiceOrder: RequestHandler = async (req, res) => {
@@ -39,8 +39,9 @@ export const updateServiceOrder: RequestHandler = async (req, res) => {
     res.json({ success: true, data: updatedOS });
 };
 
-export const deleteServiceOrder: RequestHandler = async (req, res) => {
+export const cancelServiceOrder: RequestHandler = async (req, res) => {
     const { id } = serviceOrderIdSchema.parse(req.params);
-    const message = await ServiceOrder.removeServiceOrder(id);
+    const { reason } = cancelServiceOrderSchema.parse(req.body);
+    const message = await ServiceOrder.cancelServiceOrder(id, reason);
     res.json({ success: true, data: message });
 };

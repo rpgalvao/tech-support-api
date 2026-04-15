@@ -16,6 +16,13 @@ enum EquipmentStatus {
   EM_ANALISE
   REPARO
   FINALIZADO
+  OS_CANCELADA
+}
+
+enum ServiceOrderStatus {
+  ABERTA
+  FINALIZADA
+  CANCELADA
 }
 
 model Technician {
@@ -65,15 +72,17 @@ model Equipment {
 }
 
 model ServiceOrder {
-  id                   String         @id @default(uuid())
-  number               Int            @unique @default(autoincrement())
+  id                   String             @id @default(uuid())
+  number               Int                @unique @default(autoincrement())
   customerId           String
   equipmentId          String
   technicianId         String
-  opened_at            DateTime       @default(now())
+  opened_at            DateTime           @default(now())
   closed_at            DateTime?
   problem_description  String
   solution_description String?
+  status               ServiceOrderStatus @default(ABERTA)
+  cancellation_reason  String?
   parts_replaced       PartReplaced[]
 
   technician Technician? @relation(fields: [technicianId], references: [id])

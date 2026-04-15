@@ -132,26 +132,25 @@ export const updateServiceOrder = async (id: string, data: Prisma.ServiceOrderUn
     return result[result.length - 1];
 };
 
-export const removeServiceOrder = async (id: string) => {
+export const cancelServiceOrder = async (id: string, reason: string) => {
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
-    const queries = [];
-
-    if (!serviceOrder.closed_at) {
-        const revertEquipmentQuery = prisma.equipment.update({
-            where: { id: serviceOrder.equipmentId },
-            data: { status: 'EM_ANALISE' }
-        });
-        queries.push(revertEquipmentQuery);
-    }
-
-    const deleteOSQuery = prisma.serviceOrder.delete({
-        where: { id }
+    const cancelServiceQuery = prisma.serviceOrder.update({
+        where: { id },
+        data: {
+            status: 'CANCELADA',
+            cancellation_reason: reason,
+            closed_at: new Date()
+        }
     });
-    queries.push(deleteOSQuery);
 
-    await prisma.$transaction(queries);
+    const updateEquipmentQuery = prisma.equipment.update({
+        where: { id: serviceOrder.equipmentId },
+        data: { status: 'OS_CANCELADA' }
+    });
 
-    return { message: 'Ordem de serviço excluída com sucesso' };
+    await prisma.$transaction([cancelServiceQuery, updateEquipmentQuery]);
+
+    return { message: 'Ordem de serviço cancelada' };
 };
