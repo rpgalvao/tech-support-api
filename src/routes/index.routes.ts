@@ -5,6 +5,7 @@ import authRoute from "./auth.routes";
 import customerRoute from "./customer.routes";
 import equipmentRoute from "./equipment.routes";
 import serviceOrderRoute from "./serviceOrder.routes";
+import dashboardRoute from "./dashboard.routes";
 
 const route = Router();
 
@@ -15,6 +16,7 @@ route.get('/ping', (req, res) => {
 
 route.use('/login', authRoute);
 route.use(authMiddleware);
+route.use('/dashboard', dashboardRoute);
 route.use('/technician', technicianRoute);
 route.use('/customer', customerRoute);
 route.use('/equipment', equipmentRoute);
