@@ -118,20 +118,40 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData) => {
     const queries = [];
     let osDataToUpdate = { ...data };
 
-    if (data.solution_description) {
+    // 🏆 A NOVA INTELIGÊNCIA DE STATUS
+    if (data.status === 'FINALIZADA' || data.status === 'CANCELADA') {
+        // Se finalizou ou cancelou, grava a hora do fechamento
         osDataToUpdate.closed_at = new Date();
-        osDataToUpdate.status = 'FINALIZADA';
+
+        // Mapeia o status da O.S. para o status do Equipamento (que está no seu schema.prisma)
+        const equipmentStatus = data.status === 'FINALIZADA' ? 'FINALIZADO' : 'OS_CANCELADA';
 
         const equipmentUpdateQuery = prisma.equipment.update({
             where: { id: serviceOrder.equipmentId },
             data: {
-                status: 'FINALIZADO',
-                returned_at: new Date()
+                status: equipmentStatus,
+                returned_at: new Date() // Grava a hora que a máquina ficou pronta/liberada
+            }
+        });
+        queries.push(equipmentUpdateQuery);
+
+    } else if (data.status === 'ABERTA') {
+        // Se o técnico decidiu reabrir a O.S., nós apagamos a data de fechamento
+        osDataToUpdate.closed_at = null;
+        osDataToUpdate.cancellation_reason = null;
+
+        // E voltamos o equipamento do cliente para a bancada
+        const equipmentUpdateQuery = prisma.equipment.update({
+            where: { id: serviceOrder.equipmentId },
+            data: {
+                status: 'REPARO', // Volta pra análise/reparo
+                returned_at: null // Apaga a data de devolução, pois voltou pra bancada
             }
         });
         queries.push(equipmentUpdateQuery);
     }
 
+    // A parte das peças continua igual (intocada)
     if (parts && parts.length > 0) {
         osDataToUpdate.parts_replaced = {
             create: parts
@@ -153,6 +173,7 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData) => {
     });
     queries.push(updateOSQuery);
 
+    // Executa tudo de uma vez (O famoso comportamento do Promise.all, mas no Prisma se chama $transaction)
     const result = await prisma.$transaction(queries);
 
     return result[result.length - 1];

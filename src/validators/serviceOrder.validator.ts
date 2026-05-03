@@ -16,6 +16,8 @@ export const updateServiceOrderSchema = z.object({
     equipmentId: z.uuid().optional(),
     problem_description: z.string().min(5).max(255).optional(),
     solution_description: z.string().optional(),
+    status: z.enum(['ABERTA', 'FINALIZADA', 'CANCELADA']).optional(),
+    cancellation_reason: z.string().optional(),
     parts: z.array(z.object({
         part_name: z.string(),
         part_code: z.string().optional(),
