@@ -19,24 +19,35 @@ enum EquipmentStatus {
   OS_CANCELADA
 }
 
+enum Role {
+  ADMIN
+  TECHNICIAN
+}
+
 enum ServiceOrderStatus {
   ABERTA
   FINALIZADA
   CANCELADA
 }
 
-model Technician {
-  id             String         @id @default(uuid())
-  name           String
-  email          String         @unique
-  password       String
-  phone          String?
-  avatar_url     String?
-  active         Boolean        @default(true)
-  created_at     DateTime       @default(now())
+// 1. Mudamos de Technician para User e o mapeamento para "users"
+model User {
+  id                   String    @id @default(uuid())
+  name                 String
+  email                String    @unique
+  password             String
+  phone                String?
+  avatar_url           String?
+  active               Boolean   @default(true)
+  role                 Role      @default(TECHNICIAN)
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  created_at           DateTime  @default(now())
+
+  // O relacionamento com as O.S. se mantém
   service_orders ServiceOrder[]
 
-  @@map("technicians")
+  @@map("users")
 }
 
 model Customer {
@@ -85,9 +96,11 @@ model ServiceOrder {
   cancellation_reason  String?
   parts_replaced       PartReplaced[]
 
-  technician Technician? @relation(fields: [technicianId], references: [id])
-  equipment  Equipment?  @relation(fields: [equipmentId], references: [id])
-  customer   Customer    @relation(fields: [customerId], references: [id])
+  // 2. Aqui a mágica acontece: o campo continua se chamando "technician", 
+  // mas agora ele aponta e busca os dados lá na tabela "User"
+  technician User?      @relation(fields: [technicianId], references: [id])
+  equipment  Equipment? @relation(fields: [equipmentId], references: [id])
+  customer   Customer   @relation(fields: [customerId], references: [id])
 
   @@map("service_orders")
 }

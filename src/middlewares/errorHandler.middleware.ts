@@ -17,7 +17,11 @@ export const errorHandler = (
 
     const statusCode = error.statusCode ?? 500;
     const message = error.statusCode ? error.message : 'Oooops! Alguma coisa deu errado...';
-    console.error(`[Error] ${req.method} ${req.url} - ${error.message}`);
+
+    // MUDANÇA AQUI: Imprimimos a rota e depois o "Stack Trace" (o corpo inteiro do erro)
+    console.error(`\n🚨 [Erro Interno] Requisição falhou na rota: ${req.method} ${req.url}`);
+    console.error(error);
+    console.error(`------------------------------------------------------\n`);
 
     return res.status(statusCode).json({ success: false, message });
 };

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import technicianRoute from "./technician.routes";
+import userRoute from "./user.routes";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import authRoute from "./auth.routes";
 import customerRoute from "./customer.routes";
@@ -17,7 +17,7 @@ route.get('/ping', (req, res) => {
 route.use('/login', authRoute);
 route.use(authMiddleware);
 route.use('/dashboard', dashboardRoute);
-route.use('/technician', technicianRoute);
+route.use('/user', userRoute);
 route.use('/customer', customerRoute);
 route.use('/equipment', equipmentRoute);
 route.use('/serviceorder', serviceOrderRoute);

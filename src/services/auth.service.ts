@@ -2,10 +2,10 @@ import { AppError } from "../errors/AppError";
 import { generateToken } from "../libs/jwt";
 import { prisma } from "../libs/prisma";
 import { verifyPassword } from "../utils/hash";
-import { getTechnicianByEmail } from "./technician.service";
+import { getUserByEmail } from "./user.service";
 
 export const loginTechnician = async (email: string, password: string) => {
-    const user = await getTechnicianByEmail(email);
+    const user = await getUserByEmail(email);
     if (!user) throw new AppError('Credenciais inválidas', 401);
     const passwordCheck = await verifyPassword(password, user.password);
     if (!passwordCheck) throw new AppError('Credenciais inválidas!', 401);
