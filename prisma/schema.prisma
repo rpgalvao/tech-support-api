@@ -13,6 +13,7 @@ datasource db {
 }
 
 enum EquipmentStatus {
+  RECEBIDO
   EM_ANALISE
   REPARO
   FINALIZADO
@@ -44,8 +45,8 @@ model User {
   resetPasswordExpires DateTime?
   created_at           DateTime  @default(now())
 
-  // O relacionamento com as O.S. se mantém
-  service_orders ServiceOrder[]
+  opened_service_orders ServiceOrder[] @relation("OpenedBy")
+  closed_service_orders ServiceOrder[] @relation("ClosedBy")
 
   @@map("users")
 }
@@ -75,7 +76,7 @@ model Equipment {
   received_at    DateTime        @default(now())
   returned_at    DateTime?
   active         Boolean         @default(true)
-  status         EquipmentStatus @default(EM_ANALISE)
+  status         EquipmentStatus @default(RECEBIDO)
   service_orders ServiceOrder[]
   customer       Customer?       @relation(fields: [customerId], references: [id])
 
@@ -83,11 +84,14 @@ model Equipment {
 }
 
 model ServiceOrder {
-  id                   String             @id @default(uuid())
-  number               Int                @unique @default(autoincrement())
-  customerId           String
-  equipmentId          String
-  technicianId         String
+  id          String @id @default(uuid())
+  number      Int    @unique @default(autoincrement())
+  customerId  String
+  equipmentId String
+
+  openedById String
+  closedById String?
+
   opened_at            DateTime           @default(now())
   closed_at            DateTime?
   problem_description  String
@@ -96,11 +100,11 @@ model ServiceOrder {
   cancellation_reason  String?
   parts_replaced       PartReplaced[]
 
-  // 2. Aqui a mágica acontece: o campo continua se chamando "technician", 
-  // mas agora ele aponta e busca os dados lá na tabela "User"
-  technician User?      @relation(fields: [technicianId], references: [id])
-  equipment  Equipment? @relation(fields: [equipmentId], references: [id])
-  customer   Customer   @relation(fields: [customerId], references: [id])
+  openedBy User  @relation("OpenedBy", fields: [openedById], references: [id])
+  clodedBy User? @relation("ClosedBy", fields: [closedById], references: [id])
+
+  equipment Equipment? @relation(fields: [equipmentId], references: [id])
+  customer  Customer   @relation(fields: [customerId], references: [id])
 
   @@map("service_orders")
 }
