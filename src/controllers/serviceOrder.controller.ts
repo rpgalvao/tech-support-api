@@ -4,14 +4,10 @@ import { cancelServiceOrderSchema, openServiceOrderSchema, serviceOrderIdSchema,
 import { AppError } from "../errors/AppError";
 
 export const createServiceOrder: RequestHandler = async (req, res) => {
-    const technicianId = req.user?.id;
-    if (!technicianId) throw new AppError('Usuário não autenticado', 401);
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+    const loggedId = req.user.id;
     const data = openServiceOrderSchema.parse(req.body);
-    const newData = {
-        ...data,
-        technicianId
-    };
-    const serviceOrder = await ServiceOrder.createServiceOrder(newData);
+    const serviceOrder = await ServiceOrder.createServiceOrder(data, loggedId);
     res.status(201).json({ success: true, data: serviceOrder });
 };
 
@@ -28,20 +24,18 @@ export const listServiceOrderById: RequestHandler = async (req, res) => {
 
 export const updateServiceOrder: RequestHandler = async (req, res) => {
     if (!req.user) throw new AppError('Usuário não autenticado', 401);
-    const technicianId = req.user.id;
+    const loggedId = req.user.id;
     const { id } = serviceOrderIdSchema.parse(req.params);
-    const result = updateServiceOrderSchema.parse(req.body);
-    const data = {
-        ...result,
-        technicianId
-    };
-    const updatedOS = await ServiceOrder.updateServiceOrder(id, data);
+    const data = updateServiceOrderSchema.parse(req.body);
+    const updatedOS = await ServiceOrder.updateServiceOrder(id, data, loggedId);
     res.json({ success: true, data: updatedOS });
 };
 
 export const cancelServiceOrder: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+    const loggedId = req.user.id;
     const { id } = serviceOrderIdSchema.parse(req.params);
     const { reason } = cancelServiceOrderSchema.parse(req.body);
-    const message = await ServiceOrder.cancelServiceOrder(id, reason);
+    const message = await ServiceOrder.cancelServiceOrder(id, reason, loggedId);
     res.json({ success: true, data: message });
 };

@@ -2,7 +2,8 @@ import { AppError } from "../errors/AppError";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
 
-export const createServiceOrder = async (data: Prisma.ServiceOrderUncheckedCreateInput) => {
+// 1. Recebemos o loggedUserId como segundo parâmetro
+export const createServiceOrder = async (data: Omit<Prisma.ServiceOrderUncheckedCreateInput, 'openedById'>, loggedUserId: string) => {
     const equipment = await prisma.equipment.findUnique({
         where: { id: data.equipmentId }
     });
@@ -11,13 +12,17 @@ export const createServiceOrder = async (data: Prisma.ServiceOrderUncheckedCreat
     if (equipment.customerId !== data.customerId) throw new AppError('Esse equipamento não pertence a esse cliente', 403);
 
     const createServiceOrderQuery = prisma.serviceOrder.create({
-        data,
+        data: {
+            ...data,
+            openedById: loggedUserId // Injetamos com segurança quem está abrindo a O.S.
+        },
         select: { equipment: true, customer: true }
     });
 
     const updateEquipmentQuery = prisma.equipment.update({
         where: { id: data.equipmentId },
         data: { status: 'REPARO' }
+        // Nota: Se quiser que o equipamento vá para 'RECEBIDO' ao abrir a OS, basta trocar aqui!
     });
 
     const [serviceOrder, updateEquipment] = await prisma.$transaction([
@@ -49,11 +54,17 @@ export const listAllServiceOrders = async () => {
                     address: true
                 }
             },
-            technician: {
+            // 2. Mudamos de "technician" para "openedBy" e "closedBy"
+            openedBy: {
                 select: {
                     name: true,
                     email: true,
-                    phone: true
+                }
+            },
+            closedBy: {
+                select: {
+                    name: true,
+                    email: true,
                 }
             }
         },
@@ -64,9 +75,7 @@ export const listAllServiceOrders = async () => {
 
 export const getServiceOrderById = async (id: string) => {
     const serviceOrder = await prisma.serviceOrder.findUnique({
-        where: {
-            id
-        },
+        where: { id },
         include: {
             equipment: {
                 select: {
@@ -87,11 +96,17 @@ export const getServiceOrderById = async (id: string) => {
                     address: true
                 }
             },
-            technician: {
+            // 3. Atualizando os relacionamentos aqui também
+            openedBy: {
                 select: {
                     name: true,
                     email: true,
-                    phone: true
+                }
+            },
+            closedBy: {
+                select: {
+                    name: true,
+                    email: true,
                 }
             }
         }
@@ -109,7 +124,8 @@ export type UpdateOSData = Prisma.ServiceOrderUncheckedUpdateInput & {
     }[];
 };
 
-export const updateServiceOrder = async (id: string, payload: UpdateOSData) => {
+// 4. Recebemos o loggedUserId para saber quem está fechando a O.S.
+export const updateServiceOrder = async (id: string, payload: UpdateOSData, loggedUserId: string) => {
     const { parts, ...data } = payload;
 
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
@@ -118,40 +134,36 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData) => {
     const queries = [];
     let osDataToUpdate = { ...data };
 
-    // 🏆 A NOVA INTELIGÊNCIA DE STATUS
     if (data.status === 'FINALIZADA' || data.status === 'CANCELADA') {
-        // Se finalizou ou cancelou, grava a hora do fechamento
         osDataToUpdate.closed_at = new Date();
+        osDataToUpdate.closedById = loggedUserId; // Gravamos o usuário que fechou a O.S.
 
-        // Mapeia o status da O.S. para o status do Equipamento (que está no seu schema.prisma)
         const equipmentStatus = data.status === 'FINALIZADA' ? 'FINALIZADO' : 'OS_CANCELADA';
 
         const equipmentUpdateQuery = prisma.equipment.update({
             where: { id: serviceOrder.equipmentId },
             data: {
                 status: equipmentStatus,
-                returned_at: new Date() // Grava a hora que a máquina ficou pronta/liberada
+                returned_at: new Date()
             }
         });
         queries.push(equipmentUpdateQuery);
 
     } else if (data.status === 'ABERTA') {
-        // Se o técnico decidiu reabrir a O.S., nós apagamos a data de fechamento
         osDataToUpdate.closed_at = null;
+        osDataToUpdate.closedById = null; // Removemos o responsável pelo fechamento se for reaberta
         osDataToUpdate.cancellation_reason = null;
 
-        // E voltamos o equipamento do cliente para a bancada
         const equipmentUpdateQuery = prisma.equipment.update({
             where: { id: serviceOrder.equipmentId },
             data: {
-                status: 'REPARO', // Volta pra análise/reparo
-                returned_at: null // Apaga a data de devolução, pois voltou pra bancada
+                status: 'REPARO',
+                returned_at: null
             }
         });
         queries.push(equipmentUpdateQuery);
     }
 
-    // A parte das peças continua igual (intocada)
     if (parts && parts.length > 0) {
         osDataToUpdate.parts_replaced = {
             create: parts
@@ -173,13 +185,12 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData) => {
     });
     queries.push(updateOSQuery);
 
-    // Executa tudo de uma vez (O famoso comportamento do Promise.all, mas no Prisma se chama $transaction)
     const result = await prisma.$transaction(queries);
-
     return result[result.length - 1];
 };
 
-export const cancelServiceOrder = async (id: string, reason: string) => {
+// 5. Incluímos o loggedUserId no cancelamento também
+export const cancelServiceOrder = async (id: string, reason: string, loggedUserId: string) => {
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
@@ -188,7 +199,8 @@ export const cancelServiceOrder = async (id: string, reason: string) => {
         data: {
             status: 'CANCELADA',
             cancellation_reason: reason,
-            closed_at: new Date()
+            closed_at: new Date(),
+            closedById: loggedUserId // Registra quem cancelou
         }
     });
 

@@ -101,7 +101,7 @@ model ServiceOrder {
   parts_replaced       PartReplaced[]
 
   openedBy User  @relation("OpenedBy", fields: [openedById], references: [id])
-  clodedBy User? @relation("ClosedBy", fields: [closedById], references: [id])
+  closedBy User? @relation("ClosedBy", fields: [closedById], references: [id])
 
   equipment Equipment? @relation(fields: [equipmentId], references: [id])
   customer  Customer   @relation(fields: [customerId], references: [id])
