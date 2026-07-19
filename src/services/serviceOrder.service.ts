@@ -149,19 +149,6 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData, logg
         });
         queries.push(equipmentUpdateQuery);
 
-    } else if (data.status === 'ABERTA') {
-        osDataToUpdate.closed_at = null;
-        osDataToUpdate.closedById = null; // Removemos o responsável pelo fechamento se for reaberta
-        osDataToUpdate.cancellation_reason = null;
-
-        const equipmentUpdateQuery = prisma.equipment.update({
-            where: { id: serviceOrder.equipmentId },
-            data: {
-                status: 'REPARO',
-                returned_at: null
-            }
-        });
-        queries.push(equipmentUpdateQuery);
     }
 
     if (parts && parts.length > 0) {
@@ -212,4 +199,35 @@ export const cancelServiceOrder = async (id: string, reason: string, loggedUserI
     await prisma.$transaction([cancelServiceQuery, updateEquipmentQuery]);
 
     return { message: 'Ordem de serviço cancelada' };
+};
+
+export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
+    const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
+    if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
+
+    if (serviceOrder.status === 'ABERTA') {
+        throw new AppError('Esta ordem de serviço já está aberta', 400);
+    }
+
+    const reopenServiceQuery = prisma.serviceOrder.update({
+        where: { id },
+        data: {
+            status: 'ABERTA',
+            closed_at: null,
+            closedById: null, // Apaga o usuário que havia fechado
+            cancellation_reason: null
+        }
+    });
+
+    const updateEquipmentQuery = prisma.equipment.update({
+        where: { id: serviceOrder.equipmentId },
+        data: {
+            status: 'REPARO', // Devolve o equipamento para a bancada
+            returned_at: null
+        }
+    });
+
+    await prisma.$transaction([reopenServiceQuery, updateEquipmentQuery]);
+
+    return { message: 'Ordem de serviço reaberta com sucesso' };
 };

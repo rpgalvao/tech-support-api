@@ -39,3 +39,13 @@ export const cancelServiceOrder: RequestHandler = async (req, res) => {
     const message = await ServiceOrder.cancelServiceOrder(id, reason, loggedId);
     res.json({ success: true, data: message });
 };
+
+export const reopenServiceOrder: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const loggedId = req.user.id;
+    const { id } = serviceOrderIdSchema.parse(req.params); // Reaproveitamos a validação de ID!
+
+    const message = await ServiceOrder.reopenServiceOrder(id, loggedId);
+    res.json({ success: true, data: message });
+};

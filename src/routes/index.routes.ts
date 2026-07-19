@@ -16,8 +16,8 @@ route.get('/ping', (req, res) => {
 
 route.use('/login', authRoute);
 route.use(authMiddleware);
-route.use('/dashboard', dashboardRoute);
 route.use('/user', userRoute);
+route.use('/dashboard', dashboardRoute);
 route.use('/customer', customerRoute);
 route.use('/equipment', equipmentRoute);
 route.use('/serviceorder', serviceOrderRoute);

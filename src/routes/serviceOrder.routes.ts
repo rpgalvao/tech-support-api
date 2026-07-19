@@ -7,6 +7,9 @@ route.post('/', ServiceOrderController.createServiceOrder);
 route.get('/', ServiceOrderController.listServiceOrders);
 route.get('/:id', ServiceOrderController.listServiceOrderById);
 route.put('/:id', ServiceOrderController.updateServiceOrder);
+
+// Nossas rotas de ciclo de vida isoladas
 route.patch('/:id/cancel', ServiceOrderController.cancelServiceOrder);
+route.patch('/:id/reopen', ServiceOrderController.reopenServiceOrder); // <-- ROTA NOVA AQUI
 
 export default route;
