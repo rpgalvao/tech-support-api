@@ -4,12 +4,12 @@ import { prisma } from "../libs/prisma";
 import { verifyPassword } from "../utils/hash";
 import { getUserByEmail } from "./user.service";
 
-export const loginTechnician = async (email: string, password: string) => {
+export const loginUser = async (email: string, password: string) => {
     const user = await getUserByEmail(email);
     if (!user) throw new AppError('Credenciais inválidas', 401);
     const passwordCheck = await verifyPassword(password, user.password);
     if (!passwordCheck) throw new AppError('Credenciais inválidas!', 401);
-    const token = await generateToken({ id: user.id, name: user.name });
+    const token = generateToken({ id: user.id, name: user.name, role: user.role });
 
     return {
         user: {

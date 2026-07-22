@@ -6,6 +6,7 @@ import customerRoute from "./customer.routes";
 import equipmentRoute from "./equipment.routes";
 import serviceOrderRoute from "./serviceOrder.routes";
 import dashboardRoute from "./dashboard.routes";
+import equipmentModelRoute from './equipmentModel.routes';
 
 const route = Router();
 
@@ -21,5 +22,6 @@ route.use('/dashboard', dashboardRoute);
 route.use('/customer', customerRoute);
 route.use('/equipment', equipmentRoute);
 route.use('/serviceorder', serviceOrderRoute);
+route.use('/equipmentmodel', equipmentModelRoute);
 
 export default route;

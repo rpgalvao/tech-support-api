@@ -20,6 +20,12 @@ enum EquipmentStatus {
   OS_CANCELADA
 }
 
+enum ServiceOrderType {
+  INSTALACAO
+  PREVENTIVA
+  CORRETIVA
+}
+
 enum Role {
   ADMIN
   TECHNICIAN
@@ -68,36 +74,50 @@ model Customer {
   @@map("customers")
 }
 
+model EquipmentModel {
+  id         String              @id @default(uuid())
+  name       String              @unique
+  active     Boolean             @default(true)
+  created_at DateTime            @default(now())
+  updated_at DateTime            @updatedAt
+  equipments Equipment[]
+  checklists ChecklistTemplate[]
+
+  @@map("equipment_models")
+}
+
 model Equipment {
   id             String          @id @default(uuid())
-  customerId     String?
   serial_number  String          @unique
-  description    String
+  modelId        String
+  customerId     String?
   received_at    DateTime        @default(now())
   returned_at    DateTime?
   active         Boolean         @default(true)
   status         EquipmentStatus @default(RECEBIDO)
   service_orders ServiceOrder[]
-  customer       Customer?       @relation(fields: [customerId], references: [id])
+
+  customer Customer?      @relation(fields: [customerId], references: [id])
+  model    EquipmentModel @relation(fields: [modelId], references: [id])
 
   @@map("equipments")
 }
 
 model ServiceOrder {
-  id          String @id @default(uuid())
-  number      Int    @unique @default(autoincrement())
-  customerId  String
-  equipmentId String
-
-  openedById String
-  closedById String?
-
-  opened_at            DateTime           @default(now())
+  id                   String                 @id @default(uuid())
+  number               Int                    @unique @default(autoincrement())
+  customerId           String
+  equipmentId          String
+  type                 ServiceOrderType       @default(CORRETIVA)
+  openedById           String
+  closedById           String?
+  opened_at            DateTime               @default(now())
   closed_at            DateTime?
   problem_description  String
   solution_description String?
-  status               ServiceOrderStatus @default(ABERTA)
+  status               ServiceOrderStatus     @default(ABERTA)
   cancellation_reason  String?
+  checklist            ServiceOrderChecklist?
   parts_replaced       PartReplaced[]
 
   openedBy User  @relation("OpenedBy", fields: [openedById], references: [id])
@@ -118,4 +138,74 @@ model PartReplaced {
   service_order  ServiceOrder @relation(fields: [serviceOrderId], references: [id])
 
   @@map("parts_replaced")
+}
+
+// ==========================================
+// 📋 CATÁLOGO DE CHECKLISTS (Gabaritos)
+// ==========================================
+
+model ChecklistTemplate {
+  id         String   @id @default(uuid())
+  name       String // Ex: "Preventiva Padrão"
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Amarramos o Checklist ao Modelo do Equipamento
+  modelId String
+  model   EquipmentModel @relation(fields: [modelId], references: [id])
+
+  questions ChecklistQuestion[]
+
+  @@map("checklist_templates")
+}
+
+model ChecklistQuestion {
+  id         String   @id @default(uuid())
+  text       String // Ex: "Lentes objetivas estão limpas e sem fungos?"
+  order      Int // Número para ordenar as perguntas (1, 2, 3...) na tela
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  templateId String
+  template   ChecklistTemplate @relation(fields: [templateId], references: [id])
+
+  @@map("checklist_questions")
+}
+
+// ==========================================
+// 📝 EXECUÇÃO DO CHECKLIST (Respostas na O.S.)
+// ==========================================
+
+model ServiceOrderChecklist {
+  id           String    @id @default(uuid())
+  notes        String? // Observações gerais do técnico sobre o checklist
+  started_at   DateTime  @default(now())
+  completed_at DateTime?
+
+  // Amarramos essa folha de respostas à O.S. (1 para 1)
+  serviceOrderId String       @unique
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+
+  answers ChecklistAnswer[]
+
+  @@map("service_order_checklists")
+}
+
+model ChecklistAnswer {
+  id String @id @default(uuid())
+
+  // A Sacada de Ouro: Clonamos o texto da pergunta para a resposta.
+  // Assim, se o ADMIN mudar a pergunta amanhã, o histórico desta O.S. não quebra!
+  question_text String
+  order         Int
+
+  // A resposta do técnico
+  is_ok   Boolean // true = OK, false = Defeito/Problema
+  comment String? // Ex: "Lente arranhada, será necessário orçamento para troca."
+
+  checklistId String
+  checklist   ServiceOrderChecklist @relation(fields: [checklistId], references: [id])
+
+  @@map("checklist_answers")
 }
