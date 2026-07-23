@@ -10,6 +10,7 @@ route.put('/:id', ServiceOrderController.updateServiceOrder);
 
 // Nossas rotas de ciclo de vida isoladas
 route.patch('/:id/cancel', ServiceOrderController.cancelServiceOrder);
-route.patch('/:id/reopen', ServiceOrderController.reopenServiceOrder); // <-- ROTA NOVA AQUI
+route.patch('/:id/reopen', ServiceOrderController.reopenServiceOrder);
+route.patch('/:id/checklist', ServiceOrderController.updateChecklist);
 
 export default route;

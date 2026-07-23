@@ -2,31 +2,71 @@ import { AppError } from "../errors/AppError";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
 
-// 1. Recebemos o loggedUserId como segundo parâmetro
 export const createServiceOrder = async (data: Omit<Prisma.ServiceOrderUncheckedCreateInput, 'openedById'>, loggedUserId: string) => {
+    // 1. Buscamos o equipamento (agora precisamos do modelId para o checklist)
     const equipment = await prisma.equipment.findUnique({
-        where: { id: data.equipmentId }
+        where: { id: data.equipmentId },
+        select: { id: true, customerId: true, modelId: true } // Pegamos o modelId!
     });
-    if (!equipment) throw new AppError('Equipamento não consta na base de dados', 404);
 
+    if (!equipment) throw new AppError('Equipamento não consta na base de dados', 404);
     if (equipment.customerId !== data.customerId) throw new AppError('Esse equipamento não pertence a esse cliente', 403);
+
+    // 2. A Inteligência do Checklist
+    // Preparamos o objeto que vai criar a folha de respostas, se necessário
+    let checklistData: Prisma.ServiceOrderChecklistCreateNestedOneWithoutServiceOrderInput | undefined = undefined;
+
+    // Só geramos checklist se for Preventiva ou Instalação
+    if (data.type === 'PREVENTIVA' || data.type === 'INSTALACAO') {
+        const template = await prisma.checklistTemplate.findFirst({
+            where: {
+                modelId: equipment.modelId,
+                active: true // Só pega se o gabarito estiver ativo
+            },
+            include: {
+                questions: { orderBy: { order: 'asc' } }
+            }
+        });
+
+        // Se encontrou um gabarito com perguntas, montamos o "copy-paste"
+        if (template && template.questions.length > 0) {
+            checklistData = {
+                create: {
+                    answers: {
+                        create: template.questions.map(q => ({
+                            question_text: q.text,
+                            order: q.order,
+                            is_ok: false // Valor padrão inicial
+                        }))
+                    }
+                }
+            };
+        }
+    }
+
+    // 3. Montamos as queries para a transação
+    const updateEquipmentQuery = prisma.equipment.update({
+        where: { id: data.equipmentId },
+        data: { status: 'REPARO' }
+    });
 
     const createServiceOrderQuery = prisma.serviceOrder.create({
         data: {
             ...data,
-            openedById: loggedUserId // Injetamos com segurança quem está abrindo a O.S.
+            openedById: loggedUserId,
+            checklist: checklistData // Injeta o checklist clonado aqui (se existir)
         },
-        select: { equipment: true, customer: true }
+        include: {
+            equipment: { include: { model: true } },
+            customer: true,
+            checklist: { include: { answers: true } } // Retorna a O.S. já com as perguntas para o frontend ver!
+        }
     });
 
-    const updateEquipmentQuery = prisma.equipment.update({
-        where: { id: data.equipmentId },
-        data: { status: 'REPARO' }
-        // Nota: Se quiser que o equipamento vá para 'RECEBIDO' ao abrir a OS, basta trocar aqui!
-    });
-
-    const [serviceOrder, updateEquipment] = await prisma.$transaction([
-        createServiceOrderQuery, updateEquipmentQuery
+    // 4. Executamos tudo em uma única tacada
+    const [updateEquipment, serviceOrder] = await prisma.$transaction([
+        updateEquipmentQuery,
+        createServiceOrderQuery
     ]);
 
     return serviceOrder;
@@ -37,11 +77,14 @@ export const listAllServiceOrders = async () => {
         include: {
             equipment: {
                 select: {
-                    description: true,
+                    // description: true, <-- REMOVIDO PARA NÃO QUEBRAR
                     serial_number: true,
                     received_at: true,
                     returned_at: true,
-                    status: true
+                    status: true,
+                    model: {          // <-- NOVO: Busca o nome do modelo no catálogo!
+                        select: { name: true }
+                    }
                 }
             },
             customer: {
@@ -54,19 +97,8 @@ export const listAllServiceOrders = async () => {
                     address: true
                 }
             },
-            // 2. Mudamos de "technician" para "openedBy" e "closedBy"
-            openedBy: {
-                select: {
-                    name: true,
-                    email: true,
-                }
-            },
-            closedBy: {
-                select: {
-                    name: true,
-                    email: true,
-                }
-            }
+            openedBy: { select: { name: true, email: true } },
+            closedBy: { select: { name: true, email: true } }
         },
         orderBy: { opened_at: 'asc' },
     });
@@ -79,11 +111,14 @@ export const getServiceOrderById = async (id: string) => {
         include: {
             equipment: {
                 select: {
-                    description: true,
+                    // description: true, <-- REMOVIDO PARA NÃO QUEBRAR
                     serial_number: true,
                     received_at: true,
                     returned_at: true,
-                    status: true
+                    status: true,
+                    model: {          // <-- NOVO: Busca o nome do modelo no catálogo!
+                        select: { name: true }
+                    }
                 }
             },
             customer: {
@@ -96,21 +131,17 @@ export const getServiceOrderById = async (id: string) => {
                     address: true
                 }
             },
-            // 3. Atualizando os relacionamentos aqui também
-            openedBy: {
-                select: {
-                    name: true,
-                    email: true,
-                }
-            },
-            closedBy: {
-                select: {
-                    name: true,
-                    email: true,
+            openedBy: { select: { name: true, email: true } },
+            closedBy: { select: { name: true, email: true } },
+            // NOVO: Ao buscar a O.S., já trazemos as respostas do checklist preenchidas/vazias
+            checklist: {
+                include: {
+                    answers: { orderBy: { order: 'asc' } }
                 }
             }
         }
     });
+
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
     return serviceOrder;
@@ -124,8 +155,8 @@ export type UpdateOSData = Prisma.ServiceOrderUncheckedUpdateInput & {
     }[];
 };
 
-// 4. Recebemos o loggedUserId para saber quem está fechando a O.S.
 export const updateServiceOrder = async (id: string, payload: UpdateOSData, loggedUserId: string) => {
+    // (O conteúdo desta função permanece inalterado, está perfeito)
     const { parts, ...data } = payload;
 
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
@@ -136,7 +167,7 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData, logg
 
     if (data.status === 'FINALIZADA' || data.status === 'CANCELADA') {
         osDataToUpdate.closed_at = new Date();
-        osDataToUpdate.closedById = loggedUserId; // Gravamos o usuário que fechou a O.S.
+        osDataToUpdate.closedById = loggedUserId;
 
         const equipmentStatus = data.status === 'FINALIZADA' ? 'FINALIZADO' : 'OS_CANCELADA';
 
@@ -148,7 +179,6 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData, logg
             }
         });
         queries.push(equipmentUpdateQuery);
-
     }
 
     if (parts && parts.length > 0) {
@@ -162,11 +192,7 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData, logg
         data: osDataToUpdate,
         include: {
             parts_replaced: {
-                select: {
-                    part_name: true,
-                    part_code: true,
-                    cost: true
-                }
+                select: { part_name: true, part_code: true, cost: true }
             }
         }
     });
@@ -176,8 +202,8 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData, logg
     return result[result.length - 1];
 };
 
-// 5. Incluímos o loggedUserId no cancelamento também
 export const cancelServiceOrder = async (id: string, reason: string, loggedUserId: string) => {
+    // (O conteúdo desta função permanece inalterado, está perfeito)
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
@@ -187,7 +213,7 @@ export const cancelServiceOrder = async (id: string, reason: string, loggedUserI
             status: 'CANCELADA',
             cancellation_reason: reason,
             closed_at: new Date(),
-            closedById: loggedUserId // Registra quem cancelou
+            closedById: loggedUserId
         }
     });
 
@@ -202,6 +228,7 @@ export const cancelServiceOrder = async (id: string, reason: string, loggedUserI
 };
 
 export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
+    // (O conteúdo desta função permanece inalterado, está perfeito)
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
@@ -214,7 +241,7 @@ export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
         data: {
             status: 'ABERTA',
             closed_at: null,
-            closedById: null, // Apaga o usuário que havia fechado
+            closedById: null,
             cancellation_reason: null
         }
     });
@@ -222,7 +249,7 @@ export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
     const updateEquipmentQuery = prisma.equipment.update({
         where: { id: serviceOrder.equipmentId },
         data: {
-            status: 'REPARO', // Devolve o equipamento para a bancada
+            status: 'REPARO',
             returned_at: null
         }
     });
@@ -230,4 +257,46 @@ export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
     await prisma.$transaction([reopenServiceQuery, updateEquipmentQuery]);
 
     return { message: 'Ordem de serviço reaberta com sucesso' };
+};
+
+export const updateServiceOrderChecklist = async (
+    serviceOrderId: string,
+    payload: { notes?: string, answers: { id: string, is_ok: boolean, comment?: string; }[]; }
+) => {
+    // 1. Verificamos se a O.S. existe e se ela tem um checklist atrelado
+    const os = await prisma.serviceOrder.findUnique({
+        where: { id: serviceOrderId },
+        include: { checklist: true }
+    });
+
+    if (!os || !os.checklist) {
+        throw new AppError('Checklist não encontrado para esta ordem de serviço', 404);
+    }
+
+    const queries = [];
+
+    // 2. Preparamos a atualização das notas gerais do checklist
+    queries.push(prisma.serviceOrderChecklist.update({
+        where: { id: os.checklist.id },
+        data: {
+            notes: payload.notes,
+            completed_at: new Date() // Marcamos a data e hora que o técnico finalizou
+        }
+    }));
+
+    // 3. Preparamos a atualização de cada resposta individualmente
+    for (const answer of payload.answers) {
+        queries.push(prisma.checklistAnswer.update({
+            where: { id: answer.id },
+            data: {
+                is_ok: answer.is_ok,
+                comment: answer.comment
+            }
+        }));
+    }
+
+    // 4. Disparamos a transação: ou salva todas as respostas, ou não salva nenhuma
+    await prisma.$transaction(queries);
+
+    return { message: 'Checklist preenchido e salvo com sucesso' };
 };

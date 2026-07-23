@@ -28,3 +28,12 @@ export const updateServiceOrderSchema = z.object({
 export const cancelServiceOrderSchema = z.object({
     reason: z.string('Necessário informar o motivo do cancelamento')
 });
+
+export const updateChecklistSchema = z.object({
+    notes: z.string().optional(),
+    answers: z.array(z.object({
+        id: z.uuid('ID da resposta inválido'),
+        is_ok: z.boolean(),
+        comment: z.string().optional()
+    }))
+});
