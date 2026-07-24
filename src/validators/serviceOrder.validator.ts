@@ -3,6 +3,7 @@ import z from "zod";
 export const openServiceOrderSchema = z.object({
     customerId: z.uuid(),
     equipmentId: z.uuid(),
+    type: z.enum(['INSTALACAO', 'PREVENTIVA', 'CORRETIVA']),
     problem_description: z.string().min(5).max(255),
     solution_description: z.string().optional()
 });

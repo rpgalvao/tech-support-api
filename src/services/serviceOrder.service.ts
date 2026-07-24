@@ -156,11 +156,24 @@ export type UpdateOSData = Prisma.ServiceOrderUncheckedUpdateInput & {
 };
 
 export const updateServiceOrder = async (id: string, payload: UpdateOSData, loggedUserId: string) => {
-    // (O conteúdo desta função permanece inalterado, está perfeito)
     const { parts, ...data } = payload;
 
-    const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
+    // 1. Buscamos a O.S. já trazendo os dados do checklist anexado
+    const serviceOrder = await prisma.serviceOrder.findUnique({
+        where: { id },
+        include: { checklist: true } // <-- INCLUÍDO AQUI
+    });
+
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
+
+    // 🛡️ TRAVA DE SEGURANÇA DO CHECKLIST
+    if (data.status === 'FINALIZADA') {
+        console.log(serviceOrder.checklist);
+        // Se a O.S. possui um checklist, mas ele não tem data de conclusão (não foi respondido)
+        if (serviceOrder.checklist && !serviceOrder.checklist.completed_at) {
+            throw new AppError('Acesso negado. Não é possível finalizar a Ordem de Serviço pois o checklist obrigatório ainda não foi preenchido.', 403);
+        }
+    }
 
     const queries = [];
     let osDataToUpdate = { ...data };
