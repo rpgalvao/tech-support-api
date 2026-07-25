@@ -8,6 +8,8 @@ import serviceOrderRoute from "./serviceOrder.routes";
 import dashboardRoute from "./dashboard.routes";
 import equipmentModelRoute from './equipmentModel.routes';
 import checklistTemplateRoute from './checklistTemplate.routes';
+import supplierRoute from './supplier.routes';
+import partRoute from './part.routes';
 
 const route = Router();
 
@@ -25,5 +27,7 @@ route.use('/equipment', equipmentRoute);
 route.use('/serviceorder', serviceOrderRoute);
 route.use('/equipmentmodel', equipmentModelRoute);
 route.use('/checklist-templates', checklistTemplateRoute);
+route.use('/suppliers', supplierRoute);
+route.use('/parts', partRoute);
 
 export default route;

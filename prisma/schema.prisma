@@ -51,8 +51,9 @@ model User {
   resetPasswordExpires DateTime?
   created_at           DateTime  @default(now())
 
-  opened_service_orders ServiceOrder[] @relation("OpenedBy")
-  closed_service_orders ServiceOrder[] @relation("ClosedBy")
+  opened_service_orders ServiceOrder[]  @relation("OpenedBy")
+  closed_service_orders ServiceOrder[]  @relation("ClosedBy")
+  stockMovements        StockMovement[]
 
   @@map("users")
 }
@@ -123,19 +124,22 @@ model ServiceOrder {
   openedBy User  @relation("OpenedBy", fields: [openedById], references: [id])
   closedBy User? @relation("ClosedBy", fields: [closedById], references: [id])
 
-  equipment Equipment? @relation(fields: [equipmentId], references: [id])
-  customer  Customer   @relation(fields: [customerId], references: [id])
+  equipment      Equipment?      @relation(fields: [equipmentId], references: [id])
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  stockMovements StockMovement[]
 
   @@map("service_orders")
 }
 
 model PartReplaced {
-  id             String       @id @default(uuid())
+  id             String  @id @default(uuid())
   serviceOrderId String
-  part_name      String
-  part_code      String?
-  cost           Decimal?     @db.Decimal(10, 2)
-  service_order  ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  partId         String // <-- Nova conexão com o catálogo
+  quantity       Int     @default(1)
+  unit_price     Decimal @db.Decimal(10, 2) // <-- Salva o preço do dia (se o preço da peça subir no futuro, o histórico da O.S. não muda)
+
+  service_order ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  part          Part         @relation(fields: [partId], references: [id])
 
   @@map("parts_replaced")
 }
@@ -208,4 +212,70 @@ model ChecklistAnswer {
   checklist   ServiceOrderChecklist @relation(fields: [checklistId], references: [id])
 
   @@map("checklist_answers")
+}
+
+// ==========================================
+// 📦 CONTROLE DE ESTOQUE E PEÇAS
+// ==========================================
+
+model Supplier {
+  id         String   @id @default(uuid())
+  name       String
+  document   String? // CNPJ ou CPF para nota fiscal
+  email      String?
+  phone      String?
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  parts Part[]
+
+  @@map("suppliers")
+}
+
+model Part {
+  id            String  @id @default(uuid())
+  name          String
+  sku           String? // Código único da peça (Part Number)
+  cost_price    Decimal @db.Decimal(10, 2) // O preço que a oficina pagou
+  sale_price    Decimal @db.Decimal(10, 2) // O preço cobrado do cliente final
+  current_stock Int     @default(0) // Saldo real na prateleira
+  min_stock     Int     @default(0) // Ponto de alerta para recompra
+
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  movements   StockMovement[]
+  replaced_in PartReplaced[]
+
+  @@map("parts")
+}
+
+enum MovementType {
+  IN // Entrada (Compra, devolução)
+  OUT // Saída (Uso na OS, perda, descarte)
+}
+
+model StockMovement {
+  id       String       @id @default(uuid())
+  partId   String
+  type     MovementType
+  quantity Int
+  reason   String // Ex: "Compra NF 123", "Uso na O.S. 45"
+
+  // Rastros de Auditoria (De onde veio a movimentação?)
+  userId         String? // Quem fez o ajuste no sistema
+  serviceOrderId String? // Se a saída foi por causa de uma O.S.
+
+  created_at DateTime @default(now())
+
+  part         Part          @relation(fields: [partId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+  serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id])
+
+  @@map("stock_movements")
 }
