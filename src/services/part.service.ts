@@ -12,13 +12,24 @@ type CreatePartData = {
 };
 
 export const createPart = async (data: CreatePartData) => {
+    // 🛡️ NOVA TRAVA: Verifica se o fornecedor existe antes de criar a peça
+    if (data.supplierId) {
+        const supplierExists = await prisma.supplier.findUnique({
+            where: { id: data.supplierId }
+        });
+
+        if (!supplierExists) {
+            throw new AppError("Fornecedor não encontrado.", 404);
+        }
+    }
+
     return await prisma.part.create({ data });
 };
 
 export const getAllParts = async (includeInactive = false) => {
     return await prisma.part.findMany({
         where: includeInactive ? undefined : { active: true },
-        include: { supplier: true }, // Traz os dados do fornecedor junto
+        include: { supplier: true },
         orderBy: { name: 'asc' }
     });
 };
@@ -31,9 +42,21 @@ export const getPartById = async (id: string) => {
 };
 
 export const updatePart = async (id: string, data: Partial<CreatePartData & { active: boolean; }>) => {
+    // Verifica se a peça existe
     const partExists = await prisma.part.findUnique({ where: { id } });
     if (!partExists) {
         throw new AppError("Peça não encontrada.", 404);
+    }
+
+    // 🛡️ NOVA TRAVA: Verifica se o novo fornecedor (caso seja alterado) existe
+    if (data.supplierId) {
+        const supplierExists = await prisma.supplier.findUnique({
+            where: { id: data.supplierId }
+        });
+
+        if (!supplierExists) {
+            throw new AppError("Fornecedor não encontrado.", 404);
+        }
     }
 
     return await prisma.part.update({
@@ -48,9 +71,20 @@ export const deletePart = async (id: string) => {
         throw new AppError("Peça não encontrada.", 404);
     }
 
-    // Soft Delete
     return await prisma.part.update({
         where: { id },
         data: { active: false }
     });
+};
+
+export const getLowStockParts = async () => {
+    // Busca as peças ativas
+    const parts = await prisma.part.findMany({
+        where: { active: true },
+        include: { supplier: true }, // Traz o fornecedor para o cliente já saber de quem comprar!
+        orderBy: { name: 'asc' }
+    });
+
+    // A regra de negócio: Retorna apenas as que o estoque atual bateu no limite ou passou para baixo
+    return parts.filter(part => part.current_stock <= part.min_stock);
 };

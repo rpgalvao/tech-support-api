@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import * as ServiceOrder from "../services/serviceOrder.service";
-import { cancelServiceOrderSchema, openServiceOrderSchema, serviceOrderIdSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
+import { addPartToOsSchema, cancelServiceOrderSchema, openServiceOrderSchema, serviceOrderIdSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
 import { AppError } from "../errors/AppError";
 
 export const createServiceOrder: RequestHandler = async (req, res) => {
@@ -60,4 +60,16 @@ export const updateChecklist: RequestHandler = async (req, res) => {
 
     const result = await ServiceOrder.updateServiceOrderChecklist(id, data);
     res.json({ success: true, data: result });
+};
+
+export const addPart: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const loggedId = req.user.id;
+    const { id: osId } = serviceOrderIdSchema.parse(req.params); // Reaproveitando sua validação!
+    const { partId, quantity } = addPartToOsSchema.parse(req.body);
+
+    const result = await ServiceOrder.addPartToServiceOrder(osId, partId, quantity, loggedId);
+
+    res.status(201).json({ success: true, data: result });
 };

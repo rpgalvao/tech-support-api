@@ -39,3 +39,8 @@ export const deletePart: RequestHandler = async (req, res) => {
     await PartService.deletePart(id);
     res.json({ success: true, message: "Peça inativada com sucesso." });
 };
+
+export const getLowStockDashboard: RequestHandler = async (req, res) => {
+    const lowStockParts = await PartService.getLowStockParts();
+    res.json({ success: true, data: lowStockParts });
+};

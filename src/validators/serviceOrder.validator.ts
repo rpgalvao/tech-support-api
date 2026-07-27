@@ -19,11 +19,6 @@ export const updateServiceOrderSchema = z.object({
     solution_description: z.string().optional(),
     status: z.enum(['ABERTA', 'FINALIZADA', 'CANCELADA']).optional(),
     cancellation_reason: z.string().optional(),
-    parts: z.array(z.object({
-        part_name: z.string(),
-        part_code: z.string().optional(),
-        cost: z.coerce.number().optional()
-    })).optional()
 });
 
 export const cancelServiceOrderSchema = z.object({
@@ -37,4 +32,9 @@ export const updateChecklistSchema = z.object({
         is_ok: z.boolean(),
         comment: z.string().optional()
     }))
+});
+
+export const addPartToOsSchema = z.object({
+    partId: z.uuid("ID da peça inválido"),
+    quantity: z.coerce.number().int().positive("A quantidade deve ser maior que zero")
 });

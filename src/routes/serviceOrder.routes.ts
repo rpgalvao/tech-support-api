@@ -12,5 +12,7 @@ route.put('/:id', ServiceOrderController.updateServiceOrder);
 route.patch('/:id/cancel', ServiceOrderController.cancelServiceOrder);
 route.patch('/:id/reopen', ServiceOrderController.reopenServiceOrder);
 route.patch('/:id/checklist', ServiceOrderController.updateChecklist);
+// Adicionando peça na O.S. e baixando o estoque
+route.post('/:id/parts', ServiceOrderController.addPart);
 
 export default route;

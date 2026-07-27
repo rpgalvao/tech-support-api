@@ -10,6 +10,7 @@ import equipmentModelRoute from './equipmentModel.routes';
 import checklistTemplateRoute from './checklistTemplate.routes';
 import supplierRoute from './supplier.routes';
 import partRoute from './part.routes';
+import stockMovementRoute from './stockMovement.routes';
 
 const route = Router();
 
@@ -29,5 +30,6 @@ route.use('/equipmentmodel', equipmentModelRoute);
 route.use('/checklist-templates', checklistTemplateRoute);
 route.use('/suppliers', supplierRoute);
 route.use('/parts', partRoute);
+route.use('/stock-movements', stockMovementRoute);
 
 export default route;

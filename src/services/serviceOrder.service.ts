@@ -138,6 +138,16 @@ export const getServiceOrderById = async (id: string) => {
                 include: {
                     answers: { orderBy: { order: 'asc' } }
                 }
+            },
+            parts_replaced: {
+                select: {
+                    id: true,
+                    quantity: true,
+                    unit_price: true,
+                    part: {
+                        select: { name: true, sku: true }
+                    }
+                }
             }
         }
     });
@@ -156,7 +166,7 @@ export type UpdateOSData = Prisma.ServiceOrderUncheckedUpdateInput & {
 };
 
 export const updateServiceOrder = async (id: string, payload: UpdateOSData, loggedUserId: string) => {
-    const { parts, ...data } = payload;
+    const { ...data } = payload;
 
     // 1. Buscamos a O.S. já trazendo os dados do checklist anexado
     const serviceOrder = await prisma.serviceOrder.findUnique({
@@ -194,20 +204,9 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData, logg
         queries.push(equipmentUpdateQuery);
     }
 
-    if (parts && parts.length > 0) {
-        osDataToUpdate.parts_replaced = {
-            create: parts
-        };
-    }
-
     const updateOSQuery = prisma.serviceOrder.update({
         where: { id },
-        data: osDataToUpdate,
-        include: {
-            parts_replaced: {
-                select: { part_name: true, part_code: true, cost: true }
-            }
-        }
+        data: osDataToUpdate
     });
     queries.push(updateOSQuery);
 
@@ -312,4 +311,57 @@ export const updateServiceOrderChecklist = async (
     await prisma.$transaction(queries);
 
     return { message: 'Checklist preenchido e salvo com sucesso' };
+};
+
+export const addPartToServiceOrder = async (osId: string, partId: string, quantity: number, loggedUserId: string) => {
+    // 1. Verifica se a O.S. existe e se não está finalizada/cancelada
+    const os = await prisma.serviceOrder.findUnique({ where: { id: osId } });
+    if (!os) throw new AppError("Ordem de Serviço não encontrada.", 404);
+    if (os.status !== 'ABERTA') throw new AppError("Não é possível adicionar peças em uma O.S. que não está aberta.", 403);
+
+    // 2. Verifica se a peça existe e tem estoque
+    const part = await prisma.part.findUnique({ where: { id: partId } });
+    if (!part) throw new AppError("Peça não encontrada no catálogo.", 404);
+
+    if (part.current_stock < quantity) {
+        throw new AppError(`Estoque insuficiente. Saldo atual da peça '${part.name}': ${part.current_stock} un.`, 400);
+    }
+
+    // 3. Transação: Grava na O.S, faz a Movimentação e Baixa o Estoque de uma vez só!
+    const result = await prisma.$transaction([
+
+        // A) Adiciona a peça na O.S.
+        prisma.partReplaced.create({
+            data: {
+                serviceOrderId: osId,
+                partId: partId,
+                quantity: quantity,
+                unit_price: part.sale_price // Congela o preço de venda da DWL Diagnostica no momento do uso
+            }
+        }),
+
+        // B) Gera o log de auditoria no estoque
+        prisma.stockMovement.create({
+            data: {
+                partId: partId,
+                type: "OUT",
+                quantity: quantity,
+                reason: `Peça aplicada na O.S. ID: ${os.number}`,
+                serviceOrderId: osId,
+                userId: loggedUserId
+            }
+        }),
+
+        // C) Abate o saldo físico da peça atomicamente
+        prisma.part.update({
+            where: { id: partId },
+            data: {
+                current_stock: {
+                    decrement: quantity
+                }
+            }
+        })
+    ]);
+
+    return result[0]; // Retorna o registro da peça adicionada
 };
