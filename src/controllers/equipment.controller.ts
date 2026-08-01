@@ -5,7 +5,7 @@ import { createEquipmentSchema, getEquipmentIdSchema, getEquipmentListSchema, ge
 export const insertEquipment: RequestHandler = async (req, res) => {
     const data = createEquipmentSchema.parse(req.body);
     const newEquipment = await EquipmentService.createEquipment(data);
-    res.status(201).json({ successs: true, data: newEquipment });
+    res.status(201).json({ success: true, data: newEquipment });
 };
 
 export const getEquipmentList: RequestHandler = async (req, res) => {
