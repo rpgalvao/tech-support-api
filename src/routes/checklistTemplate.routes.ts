@@ -6,6 +6,9 @@ const route = Router();
 // Rota para criar o template vazio
 route.post('/', ChecklistTemplateController.createTemplate);
 
+// Rota para listar todos os templates
+route.get('/', ChecklistTemplateController.listTemplates);
+
 // Rota para buscar um template e todas as suas perguntas
 route.get('/:id', ChecklistTemplateController.getTemplateById);
 

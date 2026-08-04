@@ -16,6 +16,12 @@ export const createTemplate: RequestHandler = async (req, res) => {
     res.status(201).json({ success: true, data: newTemplate });
 };
 
+export const listTemplates: RequestHandler = async (req, res) => {
+    // Busca todos os templates. Lembre-se de fazer um include do 'model' no Prisma!
+    const templates = await ChecklistTemplateService.listAllTemplates();
+    res.json({ success: true, data: templates });
+};
+
 export const getTemplateById: RequestHandler = async (req, res) => {
     // Busca aberta para leitura
     const { id } = checklistTemplateIdSchema.parse(req.params);

@@ -31,6 +31,21 @@ export const createTemplate = async (data: { name: string, modelId: string; }) =
     return newTemplate;
 };
 
+export const listAllTemplates = async () => {
+    const checklistTemplates = await prisma.checklistTemplate.findMany({
+        include: {
+            questions: {
+                orderBy: { order: 'asc' }
+            },
+            model: true
+        }
+    });
+
+    if (!checklistTemplates) throw new AppError('Nenhum gabarito foi encontrado', 404);
+
+    return checklistTemplates;
+};
+
 export const getTemplateById = async (id: string) => {
     const template = await prisma.checklistTemplate.findUnique({
         where: { id, active: true },
