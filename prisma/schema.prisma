@@ -114,6 +114,7 @@ model ServiceOrder {
   closedById           String?
   opened_at            DateTime               @default(now())
   closed_at            DateTime?
+  updated_at           DateTime               @default(now()) @updatedAt()
   problem_description  String
   solution_description String?
   status               ServiceOrderStatus     @default(ABERTA)
