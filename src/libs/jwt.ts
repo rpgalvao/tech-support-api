@@ -3,6 +3,7 @@ import JWT from 'jsonwebtoken';
 type TokenPayload = {
     id: string,
     name: string,
+    email: string,
     role: string;
 };
 const SECRET = process.env.JWT_SECRET_KEY as string;

@@ -9,7 +9,7 @@ export const loginUser = async (email: string, password: string) => {
     if (!user) throw new AppError('Credenciais inválidas', 401);
     const passwordCheck = await verifyPassword(password, user.password);
     if (!passwordCheck) throw new AppError('Credenciais inválidas!', 401);
-    const token = generateToken({ id: user.id, name: user.name, role: user.role });
+    const token = generateToken({ id: user.id, name: user.name, email: user.email, role: user.role });
 
     return {
         user: {
