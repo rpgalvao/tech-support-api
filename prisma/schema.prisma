@@ -39,18 +39,18 @@ enum ServiceOrderStatus {
 
 // 1. Mudamos de Technician para User e o mapeamento para "users"
 model User {
-  id                   String    @id @default(uuid())
-  name                 String
-  email                String    @unique
-  password             String
-  phone                String?
-  avatar_url           String?
-  signature_url        String?   @db.Text
-  active               Boolean   @default(true)
-  role                 Role      @default(TECHNICIAN)
-  resetPasswordToken   String?
-  resetPasswordExpires DateTime?
-  created_at           DateTime  @default(now())
+  id                     String    @id @default(uuid())
+  name                   String
+  email                  String    @unique
+  password               String
+  phone                  String?
+  avatar_url             String?
+  signature_url          String?   @db.Text
+  active                 Boolean   @default(true)
+  role                   Role      @default(TECHNICIAN)
+  reset_password_token   String?
+  reset_password_expires DateTime?
+  created_at             DateTime  @default(now())
 
   opened_service_orders ServiceOrder[]  @relation("OpenedBy")
   closed_service_orders ServiceOrder[]  @relation("ClosedBy")

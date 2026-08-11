@@ -20,7 +20,7 @@ const route = Router();
 // 🚦 2. RATE LIMITING: Radar de Força Bruta
 // ==========================================
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // Janela de tempo: 15 minutos
+    //windowMs: 15 * 60 * 1000, // Janela de tempo: 15 minutos
     max: 5, // Limite de 5 tentativas por IP dentro dessa janela
     message: {
         success: false,
