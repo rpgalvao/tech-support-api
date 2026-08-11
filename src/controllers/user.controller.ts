@@ -21,29 +21,34 @@ export const getUserById: RequestHandler = async (req, res) => {
     res.json({ success: true, data: user });
 };
 
-export const updateUser: RequestHandler = async (req, res) => {
+export const updateUser: RequestHandler = async (req, res, next) => {
     const { id } = getUserByIdSchema.parse(req.params);
     const loggedUserId = req.user?.id;
     const file = req.file;
 
-    if (loggedUserId !== id) {
-        if (file) await fs.unlink(file.path);
-        throw new AppError('Usuário não autorizado', 403);
-    }
+    try {
+        if (loggedUserId !== id) {
+            throw new AppError('Usuário não autorizado', 403);
+        }
 
-    const user = await UserService.getUserById(id);
-    if (!user) {
-        if (file) await fs.unlink(file.path);
-        return res.status(404).json({ success: false, message: 'Usuário não encontrado!!' });
-    }
+        const data = updateUserSchema.parse(req.body);
+        if (file) {
+            data.avatar_url = file.filename;
+        }
+        const updatedUser = await UserService.updateUser(id, data);
 
-    const data = updateUserSchema.parse(req.body);
-    if (file) {
-        data.avatar_url = file.filename;
-    }
+        res.json({ success: true, data: updatedUser });
 
-    const updatedUser = await UserService.updateUser(id, data);
-    res.json({ success: true, data: updatedUser });
+    } catch (error) {
+        // ZELADOR: Se deu qualquer erro em qualquer parte do processo, ele limpa a pasta tmp
+        if (file && file.path) {
+            // O .catch() interno evita que o servidor trave caso a tentativa de deletar o arquivo falhe
+            await fs.unlink(file.path).catch(() => { });
+        }
+
+        // Repassa o erro original para o errorHandler.middleware.ts fazer o trabalho dele
+        next(error);
+    }
 };
 
 export const removeUser: RequestHandler = async (req, res) => {

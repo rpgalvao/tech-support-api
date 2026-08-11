@@ -1,18 +1,22 @@
 import { Request } from "express";
 import multer from "multer";
 import path from "path";
-import { v4 } from "uuid";
+import crypto from "crypto";
+import fs from "fs";
 
-export const UPLOADS_FOLDER = path.resolve(__dirname, '..', '..', '..', 'uploads');
+export const TMP_FOLDER = path.resolve(process.cwd(), 'uploads', 'tmp');
+
+// Garante que a pasta tmp exista ANTES do Multer agir!
+if (!fs.existsSync(TMP_FOLDER)) {
+    fs.mkdirSync(TMP_FOLDER, { recursive: true });
+}
 
 export const uploadConfig = {
-    directory: UPLOADS_FOLDER,
     storage: multer.diskStorage({
-        destination: UPLOADS_FOLDER,
+        destination: TMP_FOLDER,
         filename: (req, file, callback) => {
-            const fileExtension = path.extname(file.originalname);
-            const fileHash = v4();
-            const filename = `${fileHash}${fileExtension}`;
+            const fileHash = crypto.randomBytes(10).toString('hex');
+            const filename = `${fileHash}-${file.originalname}`;
             return callback(null, filename);
         },
     }),
@@ -22,7 +26,7 @@ export const uploadConfig = {
         if (allowedTypes.includes(file.mimetype)) {
             callback(null, true);
         } else {
-            callback(new Error('Tipo de arquivo inválido'));
+            callback(new Error('Tipo de arquivo inválido. Apenas imagens são aceitas'));
         }
     }
 };

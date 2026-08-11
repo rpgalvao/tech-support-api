@@ -45,6 +45,7 @@ model User {
   password             String
   phone                String?
   avatar_url           String?
+  signature_url        String?   @db.Text
   active               Boolean   @default(true)
   role                 Role      @default(TECHNICIAN)
   resetPasswordToken   String?
@@ -117,6 +118,7 @@ model ServiceOrder {
   updated_at           DateTime               @default(now()) @updatedAt()
   problem_description  String
   solution_description String?
+  client_signature     String?                @db.Text
   status               ServiceOrderStatus     @default(ABERTA)
   cancellation_reason  String?
   checklist            ServiceOrderChecklist?

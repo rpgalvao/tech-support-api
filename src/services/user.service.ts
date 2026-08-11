@@ -1,7 +1,7 @@
 import { AppError } from "../errors/AppError";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
-import { StorageProvider } from "../providers/StorageProvider";
+import { DiskStorageProvider } from "../providers/StorageProvider";
 import { hashPassword } from "../utils/hash";
 import { setFullURL } from "../utils/setFullUrl";
 
@@ -72,13 +72,24 @@ export const updateUser = async (id: string, data: Prisma.UserUpdateInput) => {
     if (!user) throw new AppError('Usuário não encontrado!', 404);
 
     const updateData = { ...data };
-    const storage = new StorageProvider();
+    const storage = new DiskStorageProvider();
 
     if (updateData.avatar_url && typeof updateData.avatar_url === 'string') {
-        await storage.saveFile(updateData.avatar_url, 'avatars', 200);
-        if (user.avatar_url) {
+        const tmpFileName = updateData.avatar_url;
+        const finalFileName = `${id}.webp`;
+
+        // 3. Chamamos o Provider passando os 5 parâmetros: (arquivo_temp, pasta, nome_final, largura, altura)
+        const savedFileName = await storage.saveFile(tmpFileName, 'avatars', finalFileName, 256, 256);
+
+        // 4. Limpeza da foto antiga
+        // Se ele já tinha foto e o nome antigo era diferente (ex: de uma versão velha do sistema) nós apagamos.
+        // (Se o nome fosse igual, o próprio Sharp já sobrescreveu no disco na linha de cima).
+        if (user.avatar_url && user.avatar_url !== savedFileName) {
             await storage.deleteFile(user.avatar_url, 'avatars');
         }
+
+        // Substituímos o nome temporário pelo nome limpo
+        updateData.avatar_url = savedFileName;
     }
 
     if (updateData.email && updateData.email !== user.email) {
