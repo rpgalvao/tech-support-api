@@ -158,6 +158,9 @@ export const getServiceOrderById = async (id: string) => {
 };
 
 export type UpdateOSData = Prisma.ServiceOrderUncheckedUpdateInput & {
+    labor_cost?: number;
+    travel_cost?: number;
+    accommodation_cost?: number;
     parts?: {
         part_name: string;
         part_code?: string;
@@ -176,12 +179,15 @@ export const updateServiceOrder = async (id: string, payload: UpdateOSData, logg
 
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
-    // 🛡️ TRAVA DE SEGURANÇA DO CHECKLIST
+    // 🛡️ TRAVA DE SEGURANÇA DO CHECKLIST E TRAVA DE SEGURANÇA DA SOLUÇÃO
     if (data.status === 'FINALIZADA') {
-        console.log(serviceOrder.checklist);
         // Se a O.S. possui um checklist, mas ele não tem data de conclusão (não foi respondido)
         if (serviceOrder.checklist && !serviceOrder.checklist.completed_at) {
             throw new AppError('Acesso negado. Não é possível finalizar a Ordem de Serviço pois o checklist obrigatório ainda não foi preenchido.', 403);
+        }
+
+        if (!data.solution_description) {
+            throw new AppError('Para finalizar a O.S., é obrigatório informar a descrição da solução (solution_description).', 400);
         }
     }
 
@@ -364,4 +370,23 @@ export const addPartToServiceOrder = async (osId: string, partId: string, quanti
     ]);
 
     return result[0]; // Retorna o registro da peça adicionada
+};
+
+export const saveClientSignature = async (id: string, signatureBase64: string) => {
+    // 1. Verifica se a O.S. existe e se ainda está aberta
+    const os = await prisma.serviceOrder.findUnique({ where: { id } });
+
+    if (!os) throw new AppError('Ordem de serviço não encontrada.', 404);
+    if (os.status !== 'ABERTA') {
+        throw new AppError('Não é possível adicionar uma assinatura em uma O.S. finalizada ou cancelada.', 403);
+    }
+
+    // 2. Salva a string Base64 direto no banco
+    const updatedOS = await prisma.serviceOrder.update({
+        where: { id },
+        data: { client_signature: signatureBase64 },
+        select: { id: true, client_signature: true }
+    });
+
+    return updatedOS;
 };

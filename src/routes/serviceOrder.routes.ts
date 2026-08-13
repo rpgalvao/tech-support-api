@@ -1,7 +1,10 @@
 import { Router } from "express";
 import * as ServiceOrderController from "../controllers/serviceOrder.controller";
+import multer from "multer";
+import { uploadConfig } from "../libs/multer";
 
 const route = Router();
+const upload = multer(uploadConfig);
 
 route.post('/', ServiceOrderController.createServiceOrder);
 route.get('/', ServiceOrderController.listServiceOrders);
@@ -14,5 +17,8 @@ route.patch('/:id/reopen', ServiceOrderController.reopenServiceOrder);
 route.patch('/:id/checklist', ServiceOrderController.updateChecklist);
 // Adicionando peça na O.S. e baixando o estoque
 route.post('/:id/parts', ServiceOrderController.addPart);
+
+// Assinatura da O.S.
+route.patch('/:id/signature', ServiceOrderController.saveClientSignature);
 
 export default route;

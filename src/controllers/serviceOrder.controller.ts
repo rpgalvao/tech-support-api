@@ -1,6 +1,7 @@
+import fs from "fs";
 import { RequestHandler } from "express";
 import * as ServiceOrder from "../services/serviceOrder.service";
-import { addPartToOsSchema, cancelServiceOrderSchema, openServiceOrderSchema, serviceOrderIdSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
+import { addPartToOsSchema, cancelServiceOrderSchema, openServiceOrderSchema, serviceOrderIdSchema, signatureSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
 import { AppError } from "../errors/AppError";
 
 export const createServiceOrder: RequestHandler = async (req, res) => {
@@ -72,4 +73,15 @@ export const addPart: RequestHandler = async (req, res) => {
     const result = await ServiceOrder.addPartToServiceOrder(osId, partId, quantity, loggedId);
 
     res.status(201).json({ success: true, data: result });
+};
+
+export const saveClientSignature: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    const { signature } = signatureSchema.parse(req.body);
+
+    const updatedOS = await ServiceOrder.saveClientSignature(id, signature);
+
+    res.json({ success: true, message: 'Assinatura registrada com sucesso!', data: { signature_url: updatedOS.client_signature } });
 };
