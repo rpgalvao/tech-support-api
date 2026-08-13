@@ -21,4 +21,7 @@ route.post('/:id/parts', ServiceOrderController.addPart);
 // Assinatura da O.S.
 route.patch('/:id/signature', ServiceOrderController.saveClientSignature);
 
+// Rota para extrair a O.S. em PDF
+route.get('/:id/export/pdf', ServiceOrderController.exportPdf);
+
 export default route;

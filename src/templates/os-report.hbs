@@ -1,0 +1,304 @@
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Relatório de Manutenção</title>
+		<!-- Importação da Open Sans do Google Fonts -->
+		<link
+			href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			body {
+				font-family: "Open Sans", sans-serif;
+				font-size: 12px;
+				color: #333;
+				margin: 0;
+				padding: 20px;
+			}
+			.header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				border-bottom: 2px solid #225378; /* Azul DWL */
+				padding-bottom: 10px;
+				margin-bottom: 20px;
+			}
+			.header img {
+				max-height: 55px; /* Tamanho ajustável para a logo */
+			}
+			.header-title h2 {
+				color: #225378; /* Azul DWL */
+				margin: 0;
+				font-weight: 700;
+			}
+			.header-title span {
+				font-size: 10px;
+				color: #70808f; /* Cinza DWL */
+			}
+			.header-info {
+				text-align: right;
+				font-size: 11px;
+				color: #70808f; /* Cinza DWL */
+			}
+			.title {
+				text-align: center;
+				font-size: 18px;
+				font-weight: bold;
+				color: #225378; /* Azul DWL */
+				margin-bottom: 20px;
+				text-transform: uppercase;
+			}
+			.section-title {
+				background-color: #3796af; /* Azul letra DWL */
+				color: #f5f5f5;
+				font-weight: 600;
+				padding: 6px;
+				border: 1px solid #3796af; /* Azul letra DWL */
+				margin-top: 15px;
+				border-radius: 4px 4px 0 0;
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				margin-bottom: 15px;
+			}
+			table,
+			th,
+			td {
+				border: 1px solid #70808f; /* Cinza DWL */
+			}
+			th,
+			td {
+				padding: 6px;
+				text-align: left;
+			}
+			.text-box {
+				border: 1px solid #70808f; /* Cinza DWL */
+				border-top: none;
+				padding: 10px;
+				min-height: 60px;
+				margin-bottom: 15px;
+				border-radius: 0 0 4px 4px;
+			}
+			.parts-table th,
+			.parts-table td {
+				padding: 3px 6px; /* Deixa as linhas bem mais espremidas */
+				font-size: 10px; /* Reduz bastante a fonte em relação aos 12px do documento */
+				color: #555; /* Usa um cinza médio para tirar o foco principal */
+			}
+			.financial-summary {
+				width: 45%; /* Um pouco mais compacta */
+				font-size: 11px; /* Fonte levemente menor */
+				margin-bottom: 0;
+			}
+			.financial-summary th,
+			.financial-summary td {
+				padding: 3px 6px; /* Reduz a altura das linhas */
+				font-size: 10px; /* Reduz bastante a fonte em relação aos 12px do documento */
+			}
+			/* 🟢 CLASSES PARA O ENCAIXE LATERAL */
+			.bottom-section {
+				display: flex;
+				justify-content: space-between;
+				align-items: flex-end; /* Alinha os dois elementos no topo */
+				margin-bottom: 30px;
+			}
+			.warranty-box {
+				width: 50%; /* Ocupa a metade esquerda da tela */
+				border: 1px solid #70808f;
+				border-radius: 4px;
+				padding: 10px;
+				font-size: 10px; /* Letra menor para não brigar com a tabela */
+				color: #555;
+				background-color: #f8fafc;
+			}
+			.signatures {
+				clear: both;
+				margin-top: 50px;
+				display: flex;
+				justify-content: space-between;
+				text-align: center;
+			}
+			.signature-box {
+				width: 45%;
+			}
+			.signature-line {
+				border-top: 1px solid #225378; /* Azul DWL */
+				margin-top: 60px;
+				padding-top: 5px;
+				font-weight: 600;
+			}
+			.signature-img {
+				max-height: 80px;
+				margin-bottom: -60px;
+			}
+			.footer {
+				margin-top: 30px;
+				text-align: right;
+				font-style: italic;
+				color: #70808f; /* Cinza DWL */
+			}
+		</style>
+	</head>
+	<body>
+
+		<div class="header">
+			<div class="header-title">
+				<!-- A mágica do Base64 renderizando a logo do arquivo físico -->
+				{{#if logo_url}}
+					<img src="{{logo_url}}" alt="DWL Diagnóstica" />
+				{{else}}
+					<h2>DWL DIAGNÓSTICA</h2>
+					<span>ASSISTÊNCIA TÉCNICA ESPECIALIZADA</span>
+				{{/if}}
+			</div>
+			<div class="header-info">
+				Tel: (41) 3014-3636<br />
+				E-mail: suporte@dwldiagnostica.com.br
+			</div>
+		</div>
+
+		<div class="title">
+			Relatório de Manutenção Nº:
+			{{os.number}}/{{year}}
+		</div>
+
+		<table>
+			<tr>
+				<td colspan="4"><strong>Cliente:</strong> {{customer.name}}</td>
+			</tr>
+			<tr>
+				<td colspan="2"><strong>Endereço:</strong>
+					{{customer.address}}</td>
+				<td><strong>Cidade:</strong> {{customer.city}}</td>
+				<td><strong>Estado:</strong> {{customer.state}}</td>
+			</tr>
+			<tr>
+				<td colspan="2"><strong>Telefone:</strong>
+					{{customer.phone}}</td>
+				<td colspan="2"><strong>Tipo de O.S:</strong> {{os.type}}</td>
+			</tr>
+		</table>
+
+		<div class="section-title">DADOS DO EQUIPAMENTO</div>
+		<table>
+			<tr>
+				<td><strong>Modelo:</strong> {{equipment.model_name}}</td>
+				<td><strong>Nº de Série:</strong>
+					{{equipment.serial_number}}</td>
+			</tr>
+		</table>
+
+		<div class="section-title">MOTIVO DA VISITA / PROBLEMA RELATADO</div>
+		<div class="text-box">
+			{{os.problem_description}}
+		</div>
+
+		<div class="section-title">DESCRIÇÃO DOS SERVIÇOS EXECUTADOS</div>
+		<div class="text-box">
+			{{os.solution_description}}
+		</div>
+
+		<div class="section-title">PEÇAS UTILIZADAS</div>
+		<table class="parts-table">
+			<thead>
+				<tr style="background-color: #F8FAFC;">
+					<th>Código / SKU</th>
+					<th>Descrição</th>
+					<th style="text-align: center;">Qtde</th>
+					<th style="text-align: right;">Preço Unit. (R$)</th>
+					<th style="text-align: right;">Total (R$)</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{#each parts}}
+					<tr>
+						<td>{{this.sku}}</td>
+						<td>{{this.name}}</td>
+						<td style="text-align: center;">{{this.quantity}}</td>
+						<td style="text-align: right;">{{this.unit_price}}</td>
+						<td style="text-align: right;">{{this.total_price}}</td>
+					</tr>
+				{{/each}}
+			</tbody>
+		</table>
+
+		<div class="bottom-section">
+
+			<!-- Lado Esquerdo: A Observação com Lógica Condicional -->
+			<div class="warranty-box">
+				<!-- 🟢 O bloco if só renderiza isso se isPreventiva for true -->
+				{{#if os.isPreventiva}}
+					<strong style="color: #225378; font-size: 11px;">Validade do
+						relatório:</strong><br />
+					12 meses a partir da data de emissão.<br /><br />
+				{{/if}}
+				<strong style="color: #225378; font-size: 11px;">Garantia dos
+					serviços:</strong><br />
+				90 dias para os serviços prestados e peças substituídas, a
+				partir da data de encerramento desta Ordem de Serviço.
+			</div>
+
+			<!-- Lado Direito: A Tabela Financeira -->
+			<table class="financial-summary">
+				<tr>
+					<th>Subtotal Peças:</th>
+					<td style="text-align: right;">R$ {{costs.parts_total}}</td>
+				</tr>
+				<tr>
+					<th>Mão de Obra:</th>
+					<td style="text-align: right;">R$ {{costs.labor}}</td>
+				</tr>
+				<tr>
+					<th>Deslocamento:</th>
+					<td style="text-align: right;">R$ {{costs.travel}}</td>
+				</tr>
+				<tr>
+					<th>Estadia:</th>
+					<td style="text-align: right;">R$
+						{{costs.accommodation}}</td>
+				</tr>
+				<tr>
+					<th><strong style="font-size: 14px; color: #3796af;">TOTAL
+							DA O.S:</strong></th>
+					<td style="text-align: right;"><strong
+							style="font-size: 14px; color: #3796af;"
+						>R$ {{costs.grand_total}}</strong></td>
+				</tr>
+			</table>
+
+		</div>
+
+		<div class="signatures">
+			<div class="signature-box">
+				{{#if client_signature}}
+					<img
+						src="{{client_signature}}"
+						class="signature-img"
+						alt="Assinatura Cliente"
+					/>
+				{{/if}}
+				<div class="signature-line">
+					Assinatura do Cliente<br />
+					<span
+						style="font-size: 10px; color: #70808F;"
+					>{{customer.name}}</span>
+				</div>
+			</div>
+			<div class="signature-box">
+				<div class="signature-line">
+					Técnico Responsável<br />
+					<span
+						style="font-size: 10px; color: #70808F;"
+					>{{tech.name}}</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="footer">
+			Pinhais,
+			{{currentDate}}
+		</div>
+
+	</body>
+</html>
