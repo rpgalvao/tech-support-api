@@ -1,18 +1,23 @@
 import nodemailer from 'nodemailer';
 import { AppError } from '../errors/AppError';
 
-// Definimos uma interface clara para os parâmetros que o provider vai receber
+// 1. Adicionamos o array opcional de attachments na interface
 interface SendMailDTO {
     to: string;
     subject: string;
-    body: string; // Enviaremos como HTML para os links ficarem clicáveis e bonitos
+    body: string;
+    attachments?: {
+        filename: string;
+        path: string;
+        contentType?: string;
+        cid?: string;
+    }[];
 }
 
 export class MailProvider {
     private transporter: nodemailer.Transporter;
 
     constructor() {
-        // Inicializamos o "motor" do Nodemailer puxando as credenciais do seu .env
         this.transporter = nodemailer.createTransport({
             host: process.env.MAIL_HOST,
             port: Number(process.env.MAIL_PORT),
@@ -23,16 +28,17 @@ export class MailProvider {
         });
     }
 
-    public async sendMail({ to, subject, body }: SendMailDTO): Promise<void> {
+    // 2. Desestruturamos a nova propriedade recebida
+    public async sendMail({ to, subject, body, attachments }: SendMailDTO): Promise<void> {
         try {
             await this.transporter.sendMail({
                 from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_EMAIL}>`,
                 to,
                 subject,
                 html: body,
+                attachments, // 3. Repassamos para o Nodemailer
             });
 
-            // Um log amigável para você saber no terminal que o fluxo funcionou
             console.log(`✉️ [MailProvider] E-mail enviado com sucesso para: ${to}`);
         } catch (error) {
             console.error(`🚨 [MailProvider] Erro ao enviar e-mail:`, error);

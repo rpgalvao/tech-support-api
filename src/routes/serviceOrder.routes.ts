@@ -24,4 +24,7 @@ route.patch('/:id/signature', ServiceOrderController.saveClientSignature);
 // Rota para extrair a O.S. em PDF
 route.get('/:id/export/pdf', ServiceOrderController.exportPdf);
 
+// Rota para disparar o e-mail com o PDF em anexo
+route.post('/:id/send-email', ServiceOrderController.sendEmail);
+
 export default route;

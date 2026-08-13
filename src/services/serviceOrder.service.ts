@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
+import handlebars from 'handlebars';
 import { AppError } from "../errors/AppError";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
 import { PdfProvider } from '../providers/PdfProvider';
+import { MailProvider } from '../providers/MailProvider';
 
 export const createServiceOrder = async (data: Omit<Prisma.ServiceOrderUncheckedCreateInput, 'openedById'>, loggedUserId: string) => {
     // 1. Buscamos o equipamento (agora precisamos do modelId para o checklist)
@@ -494,4 +496,68 @@ export const generateServiceOrderPdf = async (id: string) => {
 
     // 6. Retorna o caminho estático para o frontend abrir em nova aba
     return `/uploads/os_pdfs/${fileName}`;
+};
+
+export const sendServiceOrderEmail = async (id: string, customEmail?: string) => {
+    // 1. Busca os dados essenciais para o e-mail
+    const os = await prisma.serviceOrder.findUnique({
+        where: { id },
+        include: {
+            customer: true,
+            equipment: { include: { model: true } }
+        }
+    });
+
+    if (!os) throw new AppError('Ordem de serviço não encontrada', 404);
+
+    // 2. Define o destinatário (prioriza o e-mail digitado no tablet, ou usa o do cadastro)
+    const recipientEmail = customEmail || os.customer.email;
+
+    if (!recipientEmail) {
+        throw new AppError('Nenhum e-mail de destino foi informado e o cliente não possui e-mail cadastrado.', 400);
+    }
+
+    // 3. Garante que o PDF esteja atualizado e pega o caminho dele
+    // A nossa função já faz toda a matemática e gera o arquivo físico
+    const pdfRelativeUrl = await generateServiceOrderPdf(id);
+
+    // Transforma "/uploads/os_pdfs/arquivo.pdf" no caminho físico absoluto do servidor
+    const fileName = pdfRelativeUrl.split('/').pop() as string;
+    const pdfPhysicalPath = path.resolve(process.cwd(), 'uploads', 'os_pdfs', fileName);
+
+    // 4. Prepara o Corpo do E-mail (HTML)
+    const templatePath = path.resolve(process.cwd(), 'src', 'templates', 'os-email.hbs');
+    const templateFile = fs.readFileSync(templatePath, 'utf-8');
+    const compileTemplate = handlebars.compile(templateFile);
+    const logoPath = path.resolve(process.cwd(), 'src', 'assets', 'logo_dwl.png');
+
+    const htmlBody = compileTemplate({
+        customerName: os.customer.name,
+        osNumber: `${os.number}/${new Date(os.opened_at).getFullYear()}`,
+        equipmentModel: os.equipment?.model.name || 'Não especificado',
+        serialNumber: os.equipment?.serial_number || 'Não especificado'
+    });
+
+    // 5. Instancia o Provedor e Dispara
+    const mailProvider = new MailProvider();
+
+    await mailProvider.sendMail({
+        to: recipientEmail,
+        subject: `DWL Diagnóstica - Relatório Técnico da O.S. ${os.number}`,
+        body: htmlBody,
+        attachments: [
+            {
+                filename: `Relatorio_OS_${os.number}.pdf`,
+                path: pdfPhysicalPath,
+                contentType: 'application/pdf'
+            },
+            {
+                filename: 'logo.png',
+                path: logoPath,
+                cid: 'logo_dwl' // Esse é o "apelido" que vamos chamar no HTML
+            }
+        ]
+    });
+
+    return { message: 'E-mail enviado com sucesso!', recipient: recipientEmail };
 };

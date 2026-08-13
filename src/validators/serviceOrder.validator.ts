@@ -46,3 +46,7 @@ export const signatureSchema = z.object({
     // A string Base64 costuma ser grande, então garantimos que não venha vazia
     signature: z.string().min(20, 'A string da assinatura em Base64 é inválida ou muito curta.')
 });
+
+export const emailSchema = z.object({
+    customEmail: z.email('E-mail inválido').optional()
+});

@@ -1,7 +1,7 @@
 import fs from "fs";
 import { RequestHandler } from "express";
 import * as ServiceOrder from "../services/serviceOrder.service";
-import { addPartToOsSchema, cancelServiceOrderSchema, openServiceOrderSchema, serviceOrderIdSchema, signatureSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
+import { addPartToOsSchema, cancelServiceOrderSchema, emailSchema, openServiceOrderSchema, serviceOrderIdSchema, signatureSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
 import { AppError } from "../errors/AppError";
 
 export const createServiceOrder: RequestHandler = async (req, res) => {
@@ -93,4 +93,15 @@ export const exportPdf: RequestHandler = async (req, res, next) => {
     const pdfUrl = await ServiceOrder.generateServiceOrderPdf(id);
 
     res.json({ success: true, message: 'Relatório gerado com sucesso!', data: { pdf_url: pdfUrl } });
+};
+
+export const sendEmail: RequestHandler = async (req, res, next) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    const { customEmail } = emailSchema.parse(req.body);
+
+    const result = await ServiceOrder.sendServiceOrderEmail(id, customEmail);
+
+    res.json({ success: true, message: result.message, data: { sent_to: result.recipient } });
 };
