@@ -5,19 +5,22 @@ import { prisma } from "../libs/prisma";
 import { hashPassword, verifyPassword } from "../utils/hash";
 import { getUserByEmail } from "./user.service";
 import { MailProvider } from "../providers/MailProvider";
+import { setFullURL } from "../utils/setFullUrl";
 
 export const loginUser = async (email: string, password: string) => {
     const user = await getUserByEmail(email);
     if (!user) throw new AppError('Credenciais inválidas', 401);
     const passwordCheck = await verifyPassword(password, user.password);
     if (!passwordCheck) throw new AppError('Credenciais inválidas!', 401);
-    const token = generateToken({ id: user.id, name: user.name, email: user.email, role: user.role });
+    const token = generateToken({ id: user.id, role: user.role });
 
     return {
         user: {
             id: user.id,
             name: user.name,
             email: user.email,
+            role: user.role,
+            avatar_url: user.avatar_url ? setFullURL(`/uploads/avatars/${user.avatar_url}`) : null,
             created_at: user.created_at
         }, token
     };

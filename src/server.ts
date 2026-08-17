@@ -29,7 +29,10 @@ server.use(cors({
 server.use(helmet());
 server.use(express.urlencoded({ extended: true }));
 server.use(express.json());
-server.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+server.use('/uploads', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+}, express.static(path.resolve(process.cwd(), 'uploads')));
 
 // ==========================================
 // 🚀 ROTAS E TRATAMENTO DE ERROS

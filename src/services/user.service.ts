@@ -2,8 +2,9 @@ import { AppError } from "../errors/AppError";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
 import { DiskStorageProvider } from "../providers/StorageProvider";
-import { hashPassword } from "../utils/hash";
+import { hashPassword, verifyPassword } from "../utils/hash";
 import { setFullURL } from "../utils/setFullUrl";
+import { UpdateUserInput } from "../validators/user.validator";
 
 export const createUser = async (data: Prisma.UserCreateInput) => {
     const emailExists = await prisma.user.findUnique({ where: { email: data.email } });
@@ -63,15 +64,17 @@ export const getUserById = async (id: string) => {
         phone: user.phone,
         role: user.role,
         avatar_url: user.avatar_url ? setFullURL(`/uploads/avatars/${user.avatar_url}`) : null,
+        signature_url: user.signature_url,
         created_at: user.created_at
     };
 };
 
-export const updateUser = async (id: string, data: Prisma.UserUpdateInput) => {
+export const updateUser = async (id: string, data: UpdateUserInput) => {
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) throw new AppError('Usuário não encontrado!', 404);
 
-    const updateData = { ...data };
+    // Tipamos temporariamente como 'any' (ou Record<string, any>) para manipularmos os campos virtuais
+    const updateData: any = { ...data };
     const storage = new DiskStorageProvider();
 
     if (updateData.avatar_url && typeof updateData.avatar_url === 'string') {
@@ -99,9 +102,24 @@ export const updateUser = async (id: string, data: Prisma.UserUpdateInput) => {
         }
     }
 
-    if (updateData.password) {
-        updateData.password = await hashPassword(updateData.password as string);
+    // Lógica da senha
+    if (updateData.newPassword) {
+        if (!updateData.currentPassword) {
+            throw new AppError("Para alterar a senha, você deve informar a senha atual.", 400);
+        }
+
+        const passwordCheck = await verifyPassword(updateData.currentPassword, user.password);
+        if (!passwordCheck) {
+            throw new AppError("A senha atual informada está incorreta.", 401);
+        }
+
+        updateData.password = await hashPassword(updateData.newPassword);
     }
+
+    // 🧹 O Pulo do Gato: Deletamos os campos virtuais antes de enviar pro Prisma!
+    // Assim, o Prisma só recebe o que realmente é coluna no banco.
+    delete updateData.currentPassword;
+    delete updateData.newPassword;
 
     const updatedUser = await prisma.user.update({
         where: { id },
@@ -113,7 +131,8 @@ export const updateUser = async (id: string, data: Prisma.UserUpdateInput) => {
             role: true,
             avatar_url: true,
             created_at: true,
-            phone: true
+            phone: true,
+            signature_url: true // Pode descomentar isso depois que criar a coluna no Prisma
         }
     });
 
