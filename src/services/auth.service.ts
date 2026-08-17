@@ -20,6 +20,8 @@ export const loginUser = async (email: string, password: string) => {
             name: user.name,
             email: user.email,
             role: user.role,
+            phone: user.phone,
+            signature_url: user.signature_url,
             avatar_url: user.avatar_url ? setFullURL(`/uploads/avatars/${user.avatar_url}`) : null,
             created_at: user.created_at
         }, token
