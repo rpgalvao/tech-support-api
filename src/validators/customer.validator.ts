@@ -7,7 +7,10 @@ export const createCustomerSchema = z.object({
     email: z.email().optional(),
     zipcode: z.string().optional(),
     address: z.string().optional(),
-    phone: z.string().optional()
+    phone: z.string().optional(),
+    number: z.string().optional(),
+    complement: z.string().optional(),
+    neighborhood: z.string().optional(),
 });
 
 export const getCustomerIdSchema = z.object({
@@ -21,5 +24,8 @@ export const updateCustomerSchema = z.object({
     email: z.email().optional(),
     zipcode: z.string().optional(),
     address: z.string().optional(),
-    phone: z.string().optional()
+    phone: z.string().optional(),
+    number: z.string().optional(),
+    complement: z.string().optional(),
+    neighborhood: z.string().optional(),
 });

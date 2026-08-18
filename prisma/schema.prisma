@@ -64,10 +64,13 @@ model Customer {
   name          String
   email         String?
   phone         String?
-  zip_code      String?
+  zipcode       String?
   city          String
   state         String
   address       String?
+  number        String?
+  complement    String?
+  neighborhood  String?
   active        Boolean        @default(true)
   created_at    DateTime       @default(now())
   equipments    Equipment[]
@@ -118,6 +121,7 @@ model ServiceOrder {
   updated_at           DateTime           @default(now()) @updatedAt()
   problem_description  String
   solution_description String?
+  technical_notes      String?            @db.Text
   client_signature     String?            @db.Text
   status               ServiceOrderStatus @default(ABERTA)
   cancellation_reason  String?

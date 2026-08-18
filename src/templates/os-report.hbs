@@ -2,141 +2,154 @@
 	<head>
 		<meta charset="UTF-8" />
 		<title>Relatório de Manutenção</title>
-		<!-- Importação da Open Sans do Google Fonts -->
 		<link
 			href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap"
 			rel="stylesheet"
 		/>
 		<style>
+			/* 🟢 1. Redução geral de espaçamentos no corpo */
 			body {
 				font-family: "Open Sans", sans-serif;
-				font-size: 12px;
+				font-size: 11px;
 				color: #333;
 				margin: 0;
-				padding: 20px;
+				padding: 15px; /* Reduzido de 20px */
 			}
 			.header {
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				border-bottom: 2px solid #225378; /* Azul DWL */
-				padding-bottom: 10px;
-				margin-bottom: 20px;
+				border-bottom: 2px solid #225378;
+				padding-bottom: 5px; /* Reduzido */
+				margin-bottom: 10px; /* Reduzido */
 			}
 			.header img {
-				max-height: 55px; /* Tamanho ajustável para a logo */
+				max-height: 45px; /* Levemente menor */
 			}
 			.header-title h2 {
-				color: #225378; /* Azul DWL */
+				color: #225378;
 				margin: 0;
 				font-weight: 700;
+				font-size: 16px;
 			}
 			.header-title span {
-				font-size: 10px;
-				color: #70808f; /* Cinza DWL */
+				font-size: 9px;
+				color: #70808f;
 			}
 			.header-info {
 				text-align: right;
-				font-size: 11px;
-				color: #70808f; /* Cinza DWL */
+				font-size: 10px;
+				color: #70808f;
 			}
 			.title {
 				text-align: center;
-				font-size: 18px;
+				font-size: 15px; /* Reduzido de 18px */
 				font-weight: bold;
-				color: #225378; /* Azul DWL */
-				margin-bottom: 20px;
+				color: #225378;
+				margin-bottom: 10px; /* Reduzido */
 				text-transform: uppercase;
 			}
+			/* 🟢 2. Caixas e Títulos mais enxutos */
 			.section-title {
-				background-color: #3796af; /* Azul letra DWL */
+				background-color: #3796af;
 				color: #f5f5f5;
 				font-weight: 600;
-				padding: 6px;
-				border: 1px solid #3796af; /* Azul letra DWL */
-				margin-top: 15px;
+				padding: 4px 6px; /* Reduzido */
+				font-size: 11px;
+				border: 1px solid #3796af;
+				margin-top: 10px; /* Reduzido */
 				border-radius: 4px 4px 0 0;
 			}
 			table {
 				width: 100%;
 				border-collapse: collapse;
-				margin-bottom: 15px;
+				margin-bottom: 10px; /* Reduzido */
 			}
 			table,
 			th,
 			td {
-				border: 1px solid #70808f; /* Cinza DWL */
+				border: 1px solid #70808f;
 			}
 			th,
 			td {
-				padding: 6px;
-				text-align: left;
+				padding: 4px 6px; /* Linhas de tabela mais finas */
 			}
 			.text-box {
-				border: 1px solid #70808f; /* Cinza DWL */
+				border: 1px solid #70808f;
 				border-top: none;
-				padding: 10px;
-				min-height: 60px;
-				margin-bottom: 15px;
+				padding: 6px 10px; /* Reduzido */
+				min-height: 25px; /* Reduzido drasticamente para evitar espaços vazios */
+				margin-bottom: 10px; /* Reduzido */
 				border-radius: 0 0 4px 4px;
 			}
 			.parts-table th,
 			.parts-table td {
-				padding: 3px 6px; /* Deixa as linhas bem mais espremidas */
-				font-size: 10px; /* Reduz bastante a fonte em relação aos 12px do documento */
-				color: #555; /* Usa um cinza médio para tirar o foco principal */
+				padding: 3px 4px;
+				font-size: 10px;
+				color: #444;
+			}
+			.bottom-section {
+				display: flex;
+				justify-content: space-between;
+				align-items: flex-start;
+				margin-top: 15px;
+				page-break-inside: avoid; /* Evita quebra de página no meio do resumo */
+			}
+			.warranty-box {
+				width: 50%;
+				border: 1px solid #70808f;
+				border-radius: 4px;
+				padding: 8px;
+				font-size: 9px;
+				color: #555;
+				background-color: #f8fafc;
 			}
 			.financial-summary {
-				width: 45%; /* Um pouco mais compacta */
-				font-size: 11px; /* Fonte levemente menor */
+				width: 45%;
 				margin-bottom: 0;
 			}
 			.financial-summary th,
 			.financial-summary td {
-				padding: 3px 6px; /* Reduz a altura das linhas */
-				font-size: 10px; /* Reduz bastante a fonte em relação aos 12px do documento */
+				padding: 2px 4px;
+				font-size: 10px;
 			}
-			/* 🟢 CLASSES PARA O ENCAIXE LATERAL */
-			.bottom-section {
-				display: flex;
-				justify-content: space-between;
-				align-items: flex-end; /* Alinha os dois elementos no topo */
-				margin-bottom: 30px;
-			}
-			.warranty-box {
-				width: 50%; /* Ocupa a metade esquerda da tela */
-				border: 1px solid #70808f;
-				border-radius: 4px;
-				padding: 10px;
-				font-size: 10px; /* Letra menor para não brigar com a tabela */
-				color: #555;
-				background-color: #f8fafc;
-			}
+
+			/* 🟢 3. Bloco de Assinaturas Totalmente Refatorado */
 			.signatures {
-				clear: both;
-				margin-top: 50px;
 				display: flex;
 				justify-content: space-between;
 				text-align: center;
+				margin-top: 20px; /* Espaço muito menor */
+				page-break-inside: avoid; /* Trava as assinaturas na mesma página se possível */
 			}
 			.signature-box {
 				width: 45%;
-			}
-			.signature-line {
-				border-top: 1px solid #225378; /* Azul DWL */
-				margin-top: 60px;
-				padding-top: 5px;
-				font-weight: 600;
+				display: flex;
+				flex-direction: column;
+				justify-content: flex-end; /* Garante que a linha fique sempre na base */
+				min-height: 70px;
 			}
 			.signature-img {
-				max-height: 80px;
-				margin-bottom: -60px;
+				max-height: 50px;
+				object-fit: contain;
+				margin: 0 auto -10px auto; /* Sobrepõe a imagem à linha suavemente */
+				position: relative;
+				z-index: 10;
+			}
+			.signature-line {
+				border-top: 1px solid #225378;
+				padding-top: 5px;
+				font-weight: 600;
+				font-size: 11px;
+				position: relative;
+				z-index: 1;
 			}
 			.footer {
-				margin-top: 30px;
+				margin-top: 15px;
 				text-align: right;
+				font-size: 10px;
 				font-style: italic;
-				color: #70808f; /* Cinza DWL */
+				color: #70808f;
 			}
 		</style>
 	</head>
@@ -144,7 +157,6 @@
 
 		<div class="header">
 			<div class="header-title">
-				<!-- A mágica do Base64 renderizando a logo do arquivo físico -->
 				{{#if logo_url}}
 					<img src="{{logo_url}}" alt="DWL Diagnóstica" />
 				{{else}}
@@ -199,6 +211,21 @@
 			{{os.solution_description}}
 		</div>
 
+		{{#if os.technical_notes}}
+			<div
+				style="margin-top: 10px; padding: 8px; background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 4px;"
+			>
+				<h4
+					style="margin: 0 0 3px 0; color: #b45309; font-size: 10px; text-transform: uppercase;"
+				>
+					Observações Técnicas / Condições de Uso
+				</h4>
+				<p style="margin: 0; font-size: 11px; color: #78350f;">
+					{{os.technical_notes}}
+				</p>
+			</div>
+		{{/if}}
+
 		<div class="section-title">PEÇAS UTILIZADAS</div>
 		<table class="parts-table">
 			<thead>
@@ -220,26 +247,34 @@
 						<td style="text-align: right;">{{this.total_price}}</td>
 					</tr>
 				{{/each}}
+				{{#unless parts.length}}
+					<tr>
+						<td
+							colspan="5"
+							style="text-align: center; font-style: italic; color: #888;"
+						>
+							Nenhuma peça utilizada nesta ordem de serviço.
+						</td>
+					</tr>
+				{{/unless}}
 			</tbody>
 		</table>
 
 		<div class="bottom-section">
-
-			<!-- Lado Esquerdo: A Observação com Lógica Condicional -->
+			<!-- Lado Esquerdo: Garantia -->
 			<div class="warranty-box">
-				<!-- 🟢 O bloco if só renderiza isso se isPreventiva for true -->
 				{{#if os.isPreventiva}}
-					<strong style="color: #225378; font-size: 11px;">Validade do
-						relatório:</strong><br />
+					<strong style="color: #225378;">Validade do relatório:</strong><br
+					/>
 					12 meses a partir da data de emissão.<br /><br />
 				{{/if}}
-				<strong style="color: #225378; font-size: 11px;">Garantia dos
-					serviços:</strong><br />
-				90 dias para os serviços prestados e peças substituídas, a
-				partir da data de encerramento desta Ordem de Serviço.
+				<strong style="color: #225378;">Garantia dos serviços:</strong><br
+				/>
+				90 dias para serviços prestados e peças substituídas, a partir
+				da data de encerramento desta O.S.
 			</div>
 
-			<!-- Lado Direito: A Tabela Financeira -->
+			<!-- Lado Direito: Financeiro -->
 			<table class="financial-summary">
 				<tr>
 					<th>Subtotal Peças:</th>
@@ -259,14 +294,13 @@
 						{{costs.accommodation}}</td>
 				</tr>
 				<tr>
-					<th><strong style="font-size: 14px; color: #3796af;">TOTAL
+					<th><strong style="font-size: 12px; color: #3796af;">TOTAL
 							DA O.S:</strong></th>
 					<td style="text-align: right;"><strong
-							style="font-size: 14px; color: #3796af;"
+							style="font-size: 12px; color: #3796af;"
 						>R$ {{costs.grand_total}}</strong></td>
 				</tr>
 			</table>
-
 		</div>
 
 		<div class="signatures">
@@ -281,15 +315,24 @@
 				<div class="signature-line">
 					Assinatura do Cliente<br />
 					<span
-						style="font-size: 10px; color: #70808F;"
+						style="font-size: 9px; color: #70808F;"
 					>{{customer.name}}</span>
 				</div>
 			</div>
+
 			<div class="signature-box">
+				<!-- 🟢 Aqui a assinatura do técnico é renderizada perfeitamente! -->
+				{{#if tech.signature}}
+					<img
+						src="{{tech.signature}}"
+						class="signature-img"
+						alt="Assinatura Técnico"
+					/>
+				{{/if}}
 				<div class="signature-line">
 					Técnico Responsável<br />
 					<span
-						style="font-size: 10px; color: #70808F;"
+						style="font-size: 9px; color: #70808F;"
 					>{{tech.name}}</span>
 				</div>
 			</div>

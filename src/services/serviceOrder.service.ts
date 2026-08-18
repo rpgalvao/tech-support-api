@@ -6,6 +6,7 @@ import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
 import { PdfProvider } from '../providers/PdfProvider';
 import { MailProvider } from '../providers/MailProvider';
+import { setFullURL } from "../utils/setFullUrl";
 
 export const createServiceOrder = async (data: Omit<Prisma.ServiceOrderUncheckedCreateInput, 'openedById'>, loggedUserId: string) => {
     // 1. Buscamos o equipamento (agora precisamos do modelId para o checklist)
@@ -447,6 +448,7 @@ export const generateServiceOrderPdf = async (id: string) => {
             type: os.type,
             problem_description: os.problem_description,
             solution_description: os.solution_description,
+            technical_notes: os.technical_notes,
             isPreventiva: os.type === 'PREVENTIVA'
         },
         year: new Date(os.opened_at).getFullYear(),
@@ -478,7 +480,8 @@ export const generateServiceOrderPdf = async (id: string) => {
         logo_url: logoBase64,
         client_signature: os.client_signature, // Se tiver assinatura em Base64, vai embutir na imagem
         tech: {
-            name: os.closedBy?.name || 'Técnico Responsável'
+            name: os.closedBy?.name || 'Técnico Responsável',
+            signature: os.closedBy?.signature_url
         },
         // Data formatada (Ex: 13 de agosto de 2026)
         currentDate: new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date())
@@ -495,7 +498,7 @@ export const generateServiceOrderPdf = async (id: string) => {
     });
 
     // 6. Retorna o caminho estático para o frontend abrir em nova aba
-    return `/uploads/os_pdfs/${fileName}`;
+    return setFullURL(`/uploads/os_pdfs/${fileName}`);
 };
 
 export const sendServiceOrderEmail = async (id: string, customEmail?: string) => {

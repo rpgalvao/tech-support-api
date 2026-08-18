@@ -17,6 +17,8 @@ export const updateServiceOrderSchema = z.object({
     equipmentId: z.uuid().optional(),
     problem_description: z.string().min(5).max(255).optional(),
     solution_description: z.string().optional(),
+    technical_notes: z.string().optional(),
+    client_signature: z.string().min(20, 'A assinatura do cliente está em formato inválido').optional(),
     status: z.enum(['ABERTA', 'FINALIZADA', 'CANCELADA']).optional(),
     cancellation_reason: z.string().optional(),
     labor_cost: z.number().min(0, 'O valor não pode ser negativo.').optional(),
