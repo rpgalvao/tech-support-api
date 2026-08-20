@@ -123,6 +123,7 @@ model ServiceOrder {
   solution_description String?
   technical_notes      String?            @db.Text
   client_signature     String?            @db.Text
+  signer_name          String?
   status               ServiceOrderStatus @default(ABERTA)
   cancellation_reason  String?
 

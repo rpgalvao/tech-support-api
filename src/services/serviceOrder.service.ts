@@ -449,6 +449,7 @@ export const generateServiceOrderPdf = async (id: string) => {
             problem_description: os.problem_description,
             solution_description: os.solution_description,
             technical_notes: os.technical_notes,
+            signer_name: os.signer_name,
             isPreventiva: os.type === 'PREVENTIVA'
         },
         year: new Date(os.opened_at).getFullYear(),
@@ -464,7 +465,7 @@ export const generateServiceOrderPdf = async (id: string) => {
             serial_number: os.equipment?.serial_number
         },
         parts: os.parts_replaced.map(p => ({
-            sku: p.part.sku || p.partId,
+            sku: p.part.sku || 'N/A',
             name: p.part.name,
             quantity: p.quantity,
             unit_price: formatCurrency(Number(p.unit_price)),

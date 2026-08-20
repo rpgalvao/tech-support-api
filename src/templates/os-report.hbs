@@ -314,9 +314,14 @@
 				{{/if}}
 				<div class="signature-line">
 					Assinatura do Cliente<br />
-					<span
-						style="font-size: 9px; color: #70808F;"
-					>{{customer.name}}</span>
+					<span style="font-size: 9px; color: #70808F;">
+						<!-- 🟢 Exibe o nome de quem assinou, ou o nome do cliente como fallback -->
+						{{#if os.signer_name}}
+							{{os.signer_name}}
+						{{else}}
+							{{customer.name}}
+						{{/if}}
+					</span>
 				</div>
 			</div>
 
