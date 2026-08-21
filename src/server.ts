@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import route from './routes/index.routes';
+import route from './routes/index.routes.js';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 import path from 'path';
 
