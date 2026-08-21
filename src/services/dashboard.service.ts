@@ -46,13 +46,13 @@ export const getDashboardMetrics = async () => {
         const monthName = d.toLocaleString('pt-BR', { month: 'short' });
 
         // Abertas: Quantas ordens FORAM CRIADAS neste mês exato?
-        const abertasNoMes = recentOrders.filter(order =>
+        const abertasNoMes = recentOrders.filter((order: any) =>
             order.opened_at.getMonth() === targetMonth &&
             order.opened_at.getFullYear() === targetYear
         ).length;
 
         // Finalizadas: Quantas ordens FORAM CONCLUÍDAS neste mês exato?
-        const finalizadasNoMes = recentOrders.filter(order => {
+        const finalizadasNoMes = recentOrders.filter((order: any) => {
             if (order.status !== 'FINALIZADA') return false;
 
             // Se o sistema marcou a data de fechamento, usamos ela. Senão, usamos a última atualização.

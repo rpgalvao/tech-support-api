@@ -86,5 +86,5 @@ export const getLowStockParts = async () => {
     });
 
     // A regra de negócio: Retorna apenas as que o estoque atual bateu no limite ou passou para baixo
-    return parts.filter(part => part.current_stock <= part.min_stock);
+    return parts.filter((part: any) => part.current_stock <= part.min_stock);
 };

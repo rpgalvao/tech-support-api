@@ -17,6 +17,7 @@ export const updateUserSchema = z.object({
     email: z.email('E-mail informado é inválido').optional(),
     phone: z.string().optional(),
     signature_url: z.string().optional(),
+    avatar_url: z.string().optional(),
     currentPassword: z.string().optional(),
     newPassword: z.string().min(5, 'A nova senha deve conter pelo menos 5 caracteres').optional(),
     role: z.enum(['ADMIN', 'TECHNICIAN']).optional()

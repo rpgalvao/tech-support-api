@@ -39,7 +39,7 @@ export const createServiceOrder = async (data: Omit<Prisma.ServiceOrderUnchecked
             checklistData = {
                 create: {
                     answers: {
-                        create: template.questions.map(q => ({
+                        create: template.questions.map((q: any) => ({
                             question_text: q.text,
                             order: q.order,
                             is_ok: false // Valor padrão inicial
@@ -417,7 +417,7 @@ export const generateServiceOrderPdf = async (id: string) => {
     }
 
     // 2. A Matemática: Calculamos o valor total das peças usadas
-    const partsTotal = os.parts_replaced.reduce((acc, curr) => {
+    const partsTotal = os.parts_replaced.reduce((acc: any, curr: any) => {
         return acc + (Number(curr.unit_price) * curr.quantity);
     }, 0);
 
@@ -464,7 +464,7 @@ export const generateServiceOrderPdf = async (id: string) => {
             model_name: os.equipment?.model.name,
             serial_number: os.equipment?.serial_number
         },
-        parts: os.parts_replaced.map(p => ({
+        parts: os.parts_replaced.map((p: any) => ({
             sku: p.part.sku || 'N/A',
             name: p.part.name,
             quantity: p.quantity,
