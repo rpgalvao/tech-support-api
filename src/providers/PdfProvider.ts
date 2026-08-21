@@ -47,8 +47,8 @@ export class PdfProvider {
             // As flags no-sandbox são a "mágica" para o Puppeteer rodar liso dentro do Docker!
             const browser = await puppeteer.launch({
                 headless: true,
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
+                // executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
             });
 
             const page = await browser.newPage();
