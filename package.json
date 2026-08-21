@@ -9,9 +9,6 @@
     "build": "tsc",
     "start": "node --env-file=.env dist/server.js"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "keywords": [],
   "author": "@rpg Sistemas",
   "license": "MIT",
