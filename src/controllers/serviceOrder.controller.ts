@@ -1,17 +1,14 @@
+import fs from "fs";
 import { RequestHandler } from "express";
 import * as ServiceOrder from "../services/serviceOrder.service";
-import { cancelServiceOrderSchema, openServiceOrderSchema, serviceOrderIdSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
+import { addPartToOsSchema, cancelServiceOrderSchema, emailSchema, openServiceOrderSchema, serviceOrderIdSchema, signatureSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
 import { AppError } from "../errors/AppError";
 
 export const createServiceOrder: RequestHandler = async (req, res) => {
-    const technicianId = req.user?.id;
-    if (!technicianId) throw new AppError('Usuário não autenticado', 401);
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+    const loggedId = req.user.id;
     const data = openServiceOrderSchema.parse(req.body);
-    const newData = {
-        ...data,
-        technicianId
-    };
-    const serviceOrder = await ServiceOrder.createServiceOrder(newData);
+    const serviceOrder = await ServiceOrder.createServiceOrder(data, loggedId);
     res.status(201).json({ success: true, data: serviceOrder });
 };
 
@@ -28,20 +25,83 @@ export const listServiceOrderById: RequestHandler = async (req, res) => {
 
 export const updateServiceOrder: RequestHandler = async (req, res) => {
     if (!req.user) throw new AppError('Usuário não autenticado', 401);
-    const technicianId = req.user.id;
+    const loggedId = req.user.id;
     const { id } = serviceOrderIdSchema.parse(req.params);
-    const result = updateServiceOrderSchema.parse(req.body);
-    const data = {
-        ...result,
-        technicianId
-    };
-    const updatedOS = await ServiceOrder.updateServiceOrder(id, data);
+    const data = updateServiceOrderSchema.parse(req.body);
+    const updatedOS = await ServiceOrder.updateServiceOrder(id, data, loggedId);
     res.json({ success: true, data: updatedOS });
 };
 
 export const cancelServiceOrder: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+    const loggedId = req.user.id;
     const { id } = serviceOrderIdSchema.parse(req.params);
     const { reason } = cancelServiceOrderSchema.parse(req.body);
-    const message = await ServiceOrder.cancelServiceOrder(id, reason);
+    const message = await ServiceOrder.cancelServiceOrder(id, reason, loggedId);
     res.json({ success: true, data: message });
+};
+
+export const reopenServiceOrder: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const loggedId = req.user.id;
+    const { id } = serviceOrderIdSchema.parse(req.params); // Reaproveitamos a validação de ID!
+
+    const message = await ServiceOrder.reopenServiceOrder(id, loggedId);
+    res.json({ success: true, data: message });
+};
+
+export const updateChecklist: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    // Reaproveitamos o validador de ID da O.S.
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    // Validamos o array de respostas
+    const data = updateChecklistSchema.parse(req.body);
+
+    const result = await ServiceOrder.updateServiceOrderChecklist(id, data);
+    res.json({ success: true, data: result });
+};
+
+export const addPart: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const loggedId = req.user.id;
+    const { id: osId } = serviceOrderIdSchema.parse(req.params); // Reaproveitando sua validação!
+    const { partId, quantity } = addPartToOsSchema.parse(req.body);
+
+    const result = await ServiceOrder.addPartToServiceOrder(osId, partId, quantity, loggedId);
+
+    res.status(201).json({ success: true, data: result });
+};
+
+export const saveClientSignature: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    const { signature } = signatureSchema.parse(req.body);
+
+    const updatedOS = await ServiceOrder.saveClientSignature(id, signature);
+
+    res.json({ success: true, message: 'Assinatura registrada com sucesso!', data: { signature_url: updatedOS.client_signature } });
+};
+
+export const exportPdf: RequestHandler = async (req, res, next) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    const pdfUrl = await ServiceOrder.generateServiceOrderPdf(id);
+
+    res.json({ success: true, message: 'Relatório gerado com sucesso!', data: { pdf_url: pdfUrl } });
+};
+
+export const sendEmail: RequestHandler = async (req, res, next) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    const { customEmail } = emailSchema.parse(req.body);
+
+    const result = await ServiceOrder.sendServiceOrderEmail(id, customEmail);
+
+    res.json({ success: true, message: result.message, data: { sent_to: result.recipient } });
 };

@@ -2,13 +2,14 @@ import JWT from 'jsonwebtoken';
 
 type TokenPayload = {
     id: string,
-    name: string,
     role: string;
+    name: string;
 };
+
 const SECRET = process.env.JWT_SECRET_KEY as string;
 
 export const generateToken = (payload: any) => {
-    return JWT.sign(payload, SECRET);
+    return JWT.sign(payload, SECRET, { expiresIn: '1d' });
 };
 
 export const decodeToken = (token: string): TokenPayload | undefined => {

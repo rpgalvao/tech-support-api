@@ -14,6 +14,7 @@ services:
 
     api:
         build: .
+        image: dwltech-backend-img
         container_name: dwltech-backend
         restart: always
         ports:
@@ -25,6 +26,21 @@ services:
             - /app/node_modules
         env_file:
             - .env
+
+    frontend-v2:
+        build:
+            context: /Users/blackeagle/projetos/renato/dwl/technical_support/frontend-v2
+            dockerfile: Dockerfile.dev
+        container_name: dwltech-frontend
+        ports:
+            - "5173:5173"
+        volumes:
+            - /Users/blackeagle/projetos/renato/dwl/technical_support/frontend-v2:/app
+            - /app/node_modules
+        environment:
+            - VITE_API_URL=http://localhost:3333/api
+        depends_on:
+            - api
 
 volumes:
     dwltechdata:

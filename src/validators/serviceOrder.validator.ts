@@ -3,6 +3,7 @@ import z from "zod";
 export const openServiceOrderSchema = z.object({
     customerId: z.uuid(),
     equipmentId: z.uuid(),
+    type: z.enum(['INSTALACAO', 'PREVENTIVA', 'CORRETIVA']),
     problem_description: z.string().min(5).max(255),
     solution_description: z.string().optional()
 });
@@ -16,15 +17,39 @@ export const updateServiceOrderSchema = z.object({
     equipmentId: z.uuid().optional(),
     problem_description: z.string().min(5).max(255).optional(),
     solution_description: z.string().optional(),
+    technical_notes: z.string().optional(),
+    client_signature: z.string().min(20, 'A assinatura do cliente está em formato inválido').optional(),
+    signer_name: z.string().min(2, 'O nome do cliente precisa ter pelo menos 2 caracteres').optional(),
     status: z.enum(['ABERTA', 'FINALIZADA', 'CANCELADA']).optional(),
     cancellation_reason: z.string().optional(),
-    parts: z.array(z.object({
-        part_name: z.string(),
-        part_code: z.string().optional(),
-        cost: z.coerce.number().optional()
-    })).optional()
+    labor_cost: z.number().min(0, 'O valor não pode ser negativo.').optional(),
+    travel_cost: z.number().min(0, 'O valor não pode ser negativo.').optional(),
+    accommodation_cost: z.number().min(0, 'O valor não pode ser negativo.').optional()
 });
 
 export const cancelServiceOrderSchema = z.object({
     reason: z.string('Necessário informar o motivo do cancelamento')
+});
+
+export const updateChecklistSchema = z.object({
+    notes: z.string().optional(),
+    answers: z.array(z.object({
+        id: z.uuid('ID da resposta inválido'),
+        is_ok: z.boolean(),
+        comment: z.string().optional()
+    }))
+});
+
+export const addPartToOsSchema = z.object({
+    partId: z.uuid("ID da peça inválido"),
+    quantity: z.coerce.number().int().positive("A quantidade deve ser maior que zero")
+});
+
+export const signatureSchema = z.object({
+    // A string Base64 costuma ser grande, então garantimos que não venha vazia
+    signature: z.string().min(20, 'A string da assinatura em Base64 é inválida ou muito curta.')
+});
+
+export const emailSchema = z.object({
+    customEmail: z.email('E-mail inválido').optional()
 });

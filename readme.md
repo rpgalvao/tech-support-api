@@ -1,38 +1,62 @@
-# 🛠️ @rpg Sistemas - Tech Support API
+# 🛠️ @rpg Sistemas - Tech Support API (v2.0)
 
 Este é o coração do sistema de gestão de assistência técnica da **@rpg Sistemas**. Uma API RESTful desenvolvida com foco em escalabilidade, segurança e automação de fluxos de trabalho para ordens de serviço.
+
+A versão 2.0 introduz geração nativa de PDFs, motor de checklists dinâmicos, captura de assinaturas e suporte nativo a banco de dados serverless.
 
 ## 🚀 Tecnologias e Conceitos Implementados
 
 Este projeto foi construído utilizando as melhores práticas de desenvolvimento backend:
 
-- **Node.js & TypeScript:** Tipagem forte para evitar erros em tempo de execução.
-- **Express:** Framework ágil para roteamento e middlewares.
-- **Prisma ORM & PostgreSQL:** Modelagem de dados complexa e migrações controladas.
-- **Docker & Docker Compose:** Ambiente de desenvolvimento isolado e pronto para produção.
-- **Zod:** Validação rigorosa de dados (Schema Validation) e normalização (Coerce/Transform).
-- **JWT (JSON Web Tokens):** Autenticação segura e proteção de rotas por níveis de acesso.
-- **Multer & Sharp:** Sistema de upload com processamento e otimização de imagens.
-- **Arquitetura em Camadas:** Separação clara entre Controllers, Services, Validators e Repositories.
+- **Node.js & TypeScript:** Tipagem forte e segurança em tempo de compilação.
+- **Express & Zod:** Roteamento ágil acoplado a validação rigorosa (Schema Validation).
+- **Prisma ORM & PostgreSQL:** Modelagem de dados relacional (otimizado para Neon Serverless via `@prisma/adapter-pg`).
+- **Puppeteer & Handlebars:** Geração nativa e estilizada de relatórios em PDF.
+- **JWT & Bcrypt:** Autenticação segura com RBAC (Controle de Acesso Baseado em Perfis - ADMIN / TECHNICIAN).
+- **Nodemailer:** Motor de envio de e-mails transacionais (ex: recuperação de senha).
+- **Multer & Sharp:** Upload, processamento e otimização de imagens (Avatares e Assinaturas).
 
 ## ⚙️ Funcionalidades Principais
 
-- **Gestão de Técnicos:** Cadastro com senha criptografada e upload de avatar otimizado.
-- **Módulo de Clientes:** CRUD completo com histórico de equipamentos e serviços.
-- **Controle de Equipamentos:** Rastreamento por número de série, com automação de status e datas de recebimento/devolução.
-- **Fluxo de Ordem de Serviço (O.S.):** - Abertura, atualização e cancelamento.
-    - **Transações de Banco de Dados:** Garantia de integridade ao atualizar O.S. e Equipamento simultaneamente.
-    - Registro de peças substituídas com inserções aninhadas (Nested Writes).
-    - Lógica de "Soft Delete" e "Cancelamento com Motivo" para auditoria.
+- **Gestão de Usuários e Acessos:** Autenticação segura com separação de privilégios entre Administradores e Técnicos.
+- **Módulo de Clientes e Equipamentos:** CRUD completo, rastreamento de número de série e captura automática de endereços (ViaCEP).
+- **Controle de Estoque:** Gestão de peças e histórico de movimentações atreladas ao uso nas Ordens de Serviço.
+- **Motor de Ordem de Serviço (O.S.):**
+    - Ciclo de vida completo (Abertura, Atualização, Fechamento e Cancelamento Seguro).
+    - Execução de **Checklists Dinâmicos** baseados no modelo do equipamento.
+    - Registro de peças, mão de obra, deslocamento e cálculo automático de totais.
+- **Assinaturas e Exportação:**
+    - Captura e injeção em Base64 da assinatura do Técnico e do Cliente.
+    - Geração de laudo técnico em PDF e formatação de links dinâmicos para envio via **WhatsApp**.
 
-## 🛠️ Como Rodar o Projeto
+## 🛠️ Como Rodar o Projeto (Local & Homologação)
 
-1. Clone o repositório.
-2. Crie seu arquivo `.env` baseado no `.env.example`.
-3. Certifique-se de que o Docker está instalado e rode:
+1. Clone o repositório e instale as dependências:
     ```bash
-    docker-compose up -d
+    npm install
     ```
-4. A API estará disponível em http://localhost:3333
+2. Configure suas variáveis de ambiente copiando o arquivo de exemplo:
 
-#### Desenvolvido com ☕ e foco por Renato - @rpg Sistemas.
+    ```bash
+        cp .env.example .env
+    ```
+
+#### Gerenciamento do Banco de Dados
+
+1. Para aplicar a estrutura em um banco de produção/homologação já existente:
+    ```bash
+    npx prisma migrate deploy
+    ```
+2. Para criar a estrutura do zero em desenvolvimento local (e rodar os seeds iniciais):
+    ```bash
+    npx prisma migrate dev
+    npx prisma db seed
+    ```
+3. Inicie o servidor em modo de desenvolvimento
+    ```bash
+    npm run dev
+    ```
+
+A API estará disponível em http://localhost:3333.
+
+### Desenvolvido com ☕ e foco por @rpg Sistemas.

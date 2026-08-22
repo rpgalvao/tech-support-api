@@ -1,8 +1,22 @@
 # Usa a imagem oficial do Node 22 Alpine
 FROM node:22-alpine
 
-# Instala o openssl para o motor do Prisma não "crashar" no Alpine
-RUN apk add --no-cache openssl
+# ==========================================
+# 🛠️ CONFIGURAÇÕES DO PUPPETEER / CHROMIUM
+# ==========================================
+# Impede o Puppeteer de baixar a versão incompatível e aponta para o Chromium do Alpine
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Instala o openssl (para o Prisma), o Chromium nativo e as bibliotecas de fontes para o PDF renderizar os textos
+RUN apk add --no-cache \
+    openssl \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
 
 # Define a pasta de trabalho
 WORKDIR /app

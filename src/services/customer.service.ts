@@ -23,8 +23,7 @@ export const getCustomerById = async (id: string) => {
         include: {
             equipments: {
                 select: {
-                    serial_number: true,
-                    description: true
+                    serial_number: true
                 }
             },
             serviceOrders: true,

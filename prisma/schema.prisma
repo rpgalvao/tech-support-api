@@ -13,10 +13,22 @@ datasource db {
 }
 
 enum EquipmentStatus {
+  RECEBIDO
   EM_ANALISE
   REPARO
   FINALIZADO
   OS_CANCELADA
+}
+
+enum ServiceOrderType {
+  INSTALACAO
+  PREVENTIVA
+  CORRETIVA
+}
+
+enum Role {
+  ADMIN
+  TECHNICIAN
 }
 
 enum ServiceOrderStatus {
@@ -25,18 +37,26 @@ enum ServiceOrderStatus {
   CANCELADA
 }
 
-model Technician {
-  id             String         @id @default(uuid())
-  name           String
-  email          String         @unique
-  password       String
-  phone          String?
-  avatar_url     String?
-  active         Boolean        @default(true)
-  created_at     DateTime       @default(now())
-  service_orders ServiceOrder[]
+// 1. Mudamos de Technician para User e o mapeamento para "users"
+model User {
+  id                     String    @id @default(uuid())
+  name                   String
+  email                  String    @unique
+  password               String
+  phone                  String?
+  avatar_url             String?
+  signature_url          String?   @db.Text
+  active                 Boolean   @default(true)
+  role                   Role      @default(TECHNICIAN)
+  reset_password_token   String?
+  reset_password_expires DateTime?
+  created_at             DateTime  @default(now())
 
-  @@map("technicians")
+  opened_service_orders ServiceOrder[]  @relation("OpenedBy")
+  closed_service_orders ServiceOrder[]  @relation("ClosedBy")
+  stockMovements        StockMovement[]
+
+  @@map("users")
 }
 
 model Customer {
@@ -44,10 +64,13 @@ model Customer {
   name          String
   email         String?
   phone         String?
-  zip_code      String?
+  zipcode       String?
   city          String
   state         String
   address       String?
+  number        String?
+  complement    String?
+  neighborhood  String?
   active        Boolean        @default(true)
   created_at    DateTime       @default(now())
   equipments    Equipment[]
@@ -56,17 +79,31 @@ model Customer {
   @@map("customers")
 }
 
+model EquipmentModel {
+  id         String              @id @default(uuid())
+  name       String              @unique
+  active     Boolean             @default(true)
+  created_at DateTime            @default(now())
+  updated_at DateTime            @updatedAt
+  equipments Equipment[]
+  checklists ChecklistTemplate[]
+
+  @@map("equipment_models")
+}
+
 model Equipment {
   id             String          @id @default(uuid())
-  customerId     String?
   serial_number  String          @unique
-  description    String
+  modelId        String
+  customerId     String?
   received_at    DateTime        @default(now())
   returned_at    DateTime?
   active         Boolean         @default(true)
-  status         EquipmentStatus @default(EM_ANALISE)
+  status         EquipmentStatus @default(RECEBIDO)
   service_orders ServiceOrder[]
-  customer       Customer?       @relation(fields: [customerId], references: [id])
+
+  customer Customer?      @relation(fields: [customerId], references: [id])
+  model    EquipmentModel @relation(fields: [modelId], references: [id])
 
   @@map("equipments")
 }
@@ -76,29 +113,182 @@ model ServiceOrder {
   number               Int                @unique @default(autoincrement())
   customerId           String
   equipmentId          String
-  technicianId         String
+  type                 ServiceOrderType   @default(CORRETIVA)
+  openedById           String
+  closedById           String?
   opened_at            DateTime           @default(now())
   closed_at            DateTime?
+  updated_at           DateTime           @default(now()) @updatedAt()
   problem_description  String
   solution_description String?
+  technical_notes      String?            @db.Text
+  client_signature     String?            @db.Text
+  signer_name          String?
   status               ServiceOrderStatus @default(ABERTA)
   cancellation_reason  String?
-  parts_replaced       PartReplaced[]
 
-  technician Technician? @relation(fields: [technicianId], references: [id])
-  equipment  Equipment?  @relation(fields: [equipmentId], references: [id])
-  customer   Customer    @relation(fields: [customerId], references: [id])
+  labor_cost         Decimal @default(0) @db.Decimal(10, 2) // Mão de obra
+  travel_cost        Decimal @default(0) @db.Decimal(10, 2) // Deslocamento
+  accommodation_cost Decimal @default(0) @db.Decimal(10, 2) // Estadia
+
+  checklist      ServiceOrderChecklist?
+  parts_replaced PartReplaced[]
+
+  openedBy User  @relation("OpenedBy", fields: [openedById], references: [id])
+  closedBy User? @relation("ClosedBy", fields: [closedById], references: [id])
+
+  equipment      Equipment?      @relation(fields: [equipmentId], references: [id])
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  stockMovements StockMovement[]
 
   @@map("service_orders")
 }
 
 model PartReplaced {
-  id             String       @id @default(uuid())
+  id             String  @id @default(uuid())
   serviceOrderId String
-  part_name      String
-  part_code      String?
-  cost           Decimal?     @db.Decimal(10, 2)
-  service_order  ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  partId         String // <-- Nova conexão com o catálogo
+  quantity       Int     @default(1)
+  unit_price     Decimal @db.Decimal(10, 2) // <-- Salva o preço do dia (se o preço da peça subir no futuro, o histórico da O.S. não muda)
+
+  service_order ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  part          Part         @relation(fields: [partId], references: [id])
 
   @@map("parts_replaced")
+}
+
+// ==========================================
+// 📋 CATÁLOGO DE CHECKLISTS (Gabaritos)
+// ==========================================
+
+model ChecklistTemplate {
+  id         String   @id @default(uuid())
+  name       String // Ex: "Preventiva Padrão"
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Amarramos o Checklist ao Modelo do Equipamento
+  modelId String
+  model   EquipmentModel @relation(fields: [modelId], references: [id])
+
+  questions ChecklistQuestion[]
+
+  @@map("checklist_templates")
+}
+
+model ChecklistQuestion {
+  id         String   @id @default(uuid())
+  text       String // Ex: "Lentes objetivas estão limpas e sem fungos?"
+  order      Int // Número para ordenar as perguntas (1, 2, 3...) na tela
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  templateId String
+  template   ChecklistTemplate @relation(fields: [templateId], references: [id])
+
+  @@map("checklist_questions")
+}
+
+// ==========================================
+// 📝 EXECUÇÃO DO CHECKLIST (Respostas na O.S.)
+// ==========================================
+
+model ServiceOrderChecklist {
+  id           String    @id @default(uuid())
+  notes        String? // Observações gerais do técnico sobre o checklist
+  started_at   DateTime  @default(now())
+  completed_at DateTime?
+
+  // Amarramos essa folha de respostas à O.S. (1 para 1)
+  serviceOrderId String       @unique
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+
+  answers ChecklistAnswer[]
+
+  @@map("service_order_checklists")
+}
+
+model ChecklistAnswer {
+  id String @id @default(uuid())
+
+  // A Sacada de Ouro: Clonamos o texto da pergunta para a resposta.
+  // Assim, se o ADMIN mudar a pergunta amanhã, o histórico desta O.S. não quebra!
+  question_text String
+  order         Int
+
+  // A resposta do técnico
+  is_ok   Boolean // true = OK, false = Defeito/Problema
+  comment String? // Ex: "Lente arranhada, será necessário orçamento para troca."
+
+  checklistId String
+  checklist   ServiceOrderChecklist @relation(fields: [checklistId], references: [id])
+
+  @@map("checklist_answers")
+}
+
+// ==========================================
+// 📦 CONTROLE DE ESTOQUE E PEÇAS
+// ==========================================
+
+model Supplier {
+  id         String   @id @default(uuid())
+  name       String
+  document   String? // CNPJ ou CPF para nota fiscal
+  email      String?
+  phone      String?
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  parts Part[]
+
+  @@map("suppliers")
+}
+
+model Part {
+  id            String  @id @default(uuid())
+  name          String
+  sku           String? // Código único da peça (Part Number)
+  cost_price    Decimal @db.Decimal(10, 2) // O preço que a oficina pagou
+  sale_price    Decimal @db.Decimal(10, 2) // O preço cobrado do cliente final
+  current_stock Int     @default(0) // Saldo real na prateleira
+  min_stock     Int     @default(0) // Ponto de alerta para recompra
+
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  movements   StockMovement[]
+  replaced_in PartReplaced[]
+
+  @@map("parts")
+}
+
+enum MovementType {
+  IN // Entrada (Compra, devolução)
+  OUT // Saída (Uso na OS, perda, descarte)
+}
+
+model StockMovement {
+  id       String       @id @default(uuid())
+  partId   String
+  type     MovementType
+  quantity Int
+  reason   String // Ex: "Compra NF 123", "Uso na O.S. 45"
+
+  // Rastros de Auditoria (De onde veio a movimentação?)
+  userId         String? // Quem fez o ajuste no sistema
+  serviceOrderId String? // Se a saída foi por causa de uma O.S.
+
+  created_at DateTime @default(now())
+
+  part         Part          @relation(fields: [partId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+  serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id])
+
+  @@map("stock_movements")
 }

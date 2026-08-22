@@ -1,31 +1,70 @@
-import fs from "fs/promises";
-import path from "path";
-import sharp from "sharp";
-import { uploadConfig } from "../libs/multer";
+import fs from 'fs';
+import path from 'path';
+import sharp from 'sharp';
 
-export class StorageProvider {
-    public async saveFile(file: string, folder: string, size = 1024): Promise<void> {
-        const originalPath = path.resolve(uploadConfig.directory, file);
-        const finalPath = path.resolve(uploadConfig.directory, folder, file);
-        try {
-            await sharp(originalPath)
-                .resize(size)
-                .toFormat('jpg')
-                .jpeg({ quality: 70 })
-                .toFile(finalPath);
+export class DiskStorageProvider {
+    // O Provider só precisa conhecer a pasta temporária por padrão
+    private tmpFolder = path.resolve(process.cwd(), 'uploads', 'tmp');
 
-            await fs.unlink(originalPath);
-        } catch (error) {
-            console.error(`Erro ao processar a imagem com Sharp: ${error}`);
+    constructor() {
+        if (!fs.existsSync(this.tmpFolder)) {
+            fs.mkdirSync(this.tmpFolder, { recursive: true });
         }
     }
 
-    public async deleteFile(file: string, folder: string): Promise<void> {
-        const filePath = path.resolve(uploadConfig.directory, folder, file);
+    // Agora passamos o subFolder (ex: 'avatars' ou 'os_images') e o finalFileName
+    public async saveFile(tmpFileName: string,
+        subFolder: string,
+        finalFileName: string,
+        width?: number,
+        height?: number): Promise<string> {
+        const originalPath = path.resolve(this.tmpFolder, tmpFileName);
+
+        // Define dinamicamente a pasta de destino baseada no parâmetro
+        const destFolder = path.resolve(process.cwd(), 'uploads', subFolder);
+
+        // Se a pasta destino (ex: avatars) não existir, o Provider cria na hora!
+        if (!fs.existsSync(destFolder)) {
+            fs.mkdirSync(destFolder, { recursive: true });
+        }
+
+        // Garantimos que a extensão no nome seja .webp
+        const safeFinalName = finalFileName.endsWith('.webp') ? finalFileName : `${finalFileName}.webp`;
+        const destPath = path.resolve(destFolder, safeFinalName);
+
         try {
-            await fs.stat(filePath);
-            await fs.unlink(filePath);
-        } catch {
+            // Inicia a instância do Sharp
+            let sharpInstance = sharp(originalPath);
+
+            // Se passarmos largura e altura (ex: Avatar), ele corta a imagem
+            if (width && height) {
+                sharpInstance = sharpInstance.resize(width, height, { fit: 'cover' });
+            }
+            // Se não passarmos (ex: Foto Full da OS), ele ignora o resize e apenas converte para WebP com 80% de qualidade e salva
+            await sharpInstance
+                .webp({ quality: 80 })
+                .toFile(destPath);
+
+            return safeFinalName;
+
+        } finally {
+            // Limpeza garantida da pasta tmp
+            if (fs.existsSync(originalPath)) {
+                await fs.promises.unlink(originalPath);
+            }
+        }
+    }
+
+    // Agora o delete também recebe de qual subFolder ele deve apagar o arquivo
+    public async deleteFile(fileName: string, subFolder: string): Promise<void> {
+        const destFolder = path.resolve(process.cwd(), 'uploads', subFolder);
+        const filePath = path.resolve(destFolder, fileName);
+
+        try {
+            if (fs.existsSync(filePath)) {
+                await fs.promises.unlink(filePath);
+            }
+        } catch (error) {
             return;
         }
     }
