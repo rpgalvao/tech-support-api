@@ -11,8 +11,22 @@ export const createUser: RequestHandler = async (req, res) => {
 };
 
 export const listUsers: RequestHandler = async (req, res) => {
-    const users = await UserService.getUsersList();
+    const includeInactive = req.query.includeInactive === 'true';
+    const users = await UserService.getUsersList(includeInactive);
     res.json({ success: true, data: users });
+};
+
+export const toggleUserStatus: RequestHandler = async (req, res) => {
+    if (!req.user || req.user.role !== 'ADMIN') {
+        throw new AppError('Acesso negado. Apenas administradores podem alterar o status.', 403);
+    }
+    const { id } = getUserByIdSchema.parse(req.params);
+    if (req.user.id === id) {
+        throw new AppError('Você não pode alterar o próprio status no sistema.', 400);
+    }
+
+    const message = await UserService.toggleUserStatus(id);
+    res.json({ success: true, message });
 };
 
 export const getUserById: RequestHandler = async (req, res) => {
