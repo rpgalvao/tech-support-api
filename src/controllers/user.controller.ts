@@ -23,15 +23,24 @@ export const getUserById: RequestHandler = async (req, res) => {
 
 export const updateUser: RequestHandler = async (req, res, next) => {
     const { id } = getUserByIdSchema.parse(req.params);
-    const loggedUserId = req.user?.id;
+    const loggedUser = req.user;
     const file = req.file;
 
     try {
-        if (loggedUserId !== id) {
+        if (!loggedUser) throw new AppError('Usuário não autenticado', 401);
+
+        // Permite se for o próprio usuário editando seu perfil ou um ADMIN editando qualquer um
+        if (loggedUser.id !== id && loggedUser.role !== 'ADMIN') {
             throw new AppError('Usuário não autorizado', 403);
         }
 
         const data = updateUserSchema.parse(req.body);
+
+        // Se não for ADMIN, impede alterar o nível de acesso por segurança
+        if (loggedUser.role !== 'ADMIN' && data.role) {
+            throw new AppError('Apenas administradores podem alterar o nível de acesso', 403);
+        }
+
         if (file) {
             data.avatar_url = file.filename;
         }
@@ -40,19 +49,24 @@ export const updateUser: RequestHandler = async (req, res, next) => {
         res.json({ success: true, data: updatedUser });
 
     } catch (error) {
-        // ZELADOR: Se deu qualquer erro em qualquer parte do processo, ele limpa a pasta tmp
         if (file && file.path) {
-            // O .catch() interno evita que o servidor trave caso a tentativa de deletar o arquivo falhe
             await fs.unlink(file.path).catch(() => { });
         }
-
-        // Repassa o erro original para o errorHandler.middleware.ts fazer o trabalho dele
         next(error);
     }
 };
 
 export const removeUser: RequestHandler = async (req, res) => {
+    if (!req.user || req.user.role !== 'ADMIN') {
+        throw new AppError('Acesso negado. Apenas administradores podem desativar usuários.', 403);
+    }
+
     const { id } = getUserByIdSchema.parse(req.params);
+
+    if (req.user.id === id) {
+        throw new AppError('Você não pode desativar seu próprio usuário no sistema.', 400);
+    }
+
     const message = await UserService.deactivateUser(id);
     res.json({ success: true, message });
 };

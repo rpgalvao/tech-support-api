@@ -11,5 +11,6 @@ route.get('/', UserController.listUsers);
 route.get('/:id', UserController.getUserById);
 route.patch('/:id', upload.single('avatar'), UserController.updateUser);
 route.delete('/:id', UserController.removeUser);
+route.patch('/:id/toggle-status', UserController.toggleUserStatus);
 
 export default route;

@@ -33,19 +33,32 @@ export const createUser = async (data: Prisma.UserCreateInput) => {
     return newUser;
 };
 
-export const getUsersList = async () => {
+export const getUsersList = async (includeInactive: boolean = false) => {
     const usersList = await prisma.user.findMany({
-        where: { active: true },
+        where: includeInactive ? undefined : { active: true },
         orderBy: { name: 'asc' },
         select: {
             id: true,
             name: true,
             email: true,
             phone: true,
-            role: true
+            role: true,
+            active: true // 🟢 Crucial: o frontend precisa saber quem está inativo!
         }
     });
     return usersList;
+};
+
+export const toggleUserStatus = async (id: string) => {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) throw new AppError('Usuário não encontrado', 404);
+
+    const updatedUser = await prisma.user.update({
+        where: { id },
+        data: { active: !user.active }
+    });
+
+    return updatedUser.active ? 'Usuário reativado com sucesso' : 'Usuário desativado com sucesso';
 };
 
 export const getUserByEmail = async (email: string) => {
