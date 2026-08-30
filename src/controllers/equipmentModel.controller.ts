@@ -39,3 +39,18 @@ export const toggleEquipmentModelStatus: RequestHandler = async (req, res) => {
 
     res.json({ success: true, data: updatedModel });
 };
+
+export const updateEquipmentModel: RequestHandler = async (req, res) => {
+    // 🛡️ Proteção: Apenas ADMIN pode editar modelos
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+    if (req.user.role !== 'ADMIN') {
+        throw new AppError('Acesso negado. Apenas administradores podem editar o nome dos modelos.', 403);
+    }
+
+    const { id } = equipmentModelIdSchema.parse(req.params);
+    const data = createEquipmentModelSchema.parse(req.body);
+
+    const updatedModel = await EquipmentModelService.updateEquipmentModel(id, data);
+
+    res.json({ success: true, data: updatedModel });
+};

@@ -53,3 +53,31 @@ export const toggleEquipmentModelStatus = async (id: string) => {
 
     return updatedModel;
 };
+
+export const updateEquipmentModel = async (id: string, data: { name: string; }) => {
+    const modelExists = await prisma.equipmentModel.findUnique({
+        where: { id }
+    });
+
+    if (!modelExists) {
+        throw new AppError('Modelo de equipamento não encontrado', 404);
+    }
+
+    // Se o nome estiver sendo alterado, verifica se não vai colidir com um existente
+    if (data.name && data.name !== modelExists.name) {
+        const nameConflict = await prisma.equipmentModel.findUnique({
+            where: { name: data.name }
+        });
+
+        if (nameConflict) {
+            throw new AppError('Já existe um modelo de equipamento com este nome', 409);
+        }
+    }
+
+    const updatedModel = await prisma.equipmentModel.update({
+        where: { id },
+        data
+    });
+
+    return updatedModel;
+};
