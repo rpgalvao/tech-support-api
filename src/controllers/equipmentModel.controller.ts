@@ -17,7 +17,9 @@ export const createEquipmentModel: RequestHandler = async (req, res) => {
 };
 
 export const listEquipmentModels: RequestHandler = async (req, res) => {
-    const models = await EquipmentModelService.listAllEquipmentModels();
+    // Captura o query param ?includeInactive=true
+    const includeInactive = req.query.includeInactive === 'true';
+    const models = await EquipmentModelService.listAllEquipmentModels(includeInactive);
     res.json({ success: true, data: models });
 };
 

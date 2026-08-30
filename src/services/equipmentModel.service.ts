@@ -17,10 +17,11 @@ export const createEquipmentModel = async (data: { name: string; }) => {
     return newModel;
 };
 
-export const listAllEquipmentModels = async () => {
+export const listAllEquipmentModels = async (includeInactive: boolean = false) => {
     const models = await prisma.equipmentModel.findMany({
-        where: { active: true },
-        orderBy: { name: 'asc' } // Traz a lista sempre em ordem alfabética
+        // Se includeInactive for true, não filtra por active. Se for false, traz só os ativos.
+        where: includeInactive ? undefined : { active: true },
+        orderBy: { name: 'asc' }
     });
     return models;
 };
