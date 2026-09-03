@@ -21,4 +21,7 @@ route.patch('/:id/toggle-status', ChecklistTemplateController.toggleTemplateStat
 // Rota para deletar uma pergunta específica (Usamos /questions/:questionId para não conflitar com a rota do template)
 route.delete('/questions/:questionId', ChecklistTemplateController.deleteQuestion);
 
+route.put('/:id', ChecklistTemplateController.updateTemplate);
+route.put('/questions/:questionId', ChecklistTemplateController.updateQuestion);
+
 export default route;

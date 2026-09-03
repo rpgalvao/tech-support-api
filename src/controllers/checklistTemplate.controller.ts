@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import * as ChecklistTemplateService from "../services/checklistTemplate.service";
-import { createChecklistTemplateSchema, checklistTemplateIdSchema, addChecklistQuestionSchema, questionIdSchema } from "../validators/checklistTemplate.validator";
+import { createChecklistTemplateSchema, checklistTemplateIdSchema, addChecklistQuestionSchema, questionIdSchema, updateChecklistTemplateSchema, updateChecklistQuestionSchema } from "../validators/checklistTemplate.validator";
 import { AppError } from "../errors/AppError";
 
 export const createTemplate: RequestHandler = async (req, res) => {
@@ -17,8 +17,8 @@ export const createTemplate: RequestHandler = async (req, res) => {
 };
 
 export const listTemplates: RequestHandler = async (req, res) => {
-    // Busca todos os templates. Lembre-se de fazer um include do 'model' no Prisma!
-    const templates = await ChecklistTemplateService.listAllTemplates();
+    const includeInactive = req.query.includeInactive === 'true';
+    const templates = await ChecklistTemplateService.listAllTemplates(includeInactive);
     res.json({ success: true, data: templates });
 };
 
@@ -64,4 +64,22 @@ export const deleteQuestion: RequestHandler = async (req, res) => {
     await ChecklistTemplateService.deleteQuestion(questionId);
 
     res.json({ success: true, message: 'Pergunta removida com sucesso' });
+};
+
+export const updateTemplate: RequestHandler = async (req, res) => {
+    if (!req.user || req.user.role !== 'ADMIN') throw new AppError('Acesso negado.', 403);
+    const { id } = checklistTemplateIdSchema.parse(req.params);
+    const data = updateChecklistTemplateSchema.parse(req.body);
+
+    const updatedTemplate = await ChecklistTemplateService.updateTemplate(id, data);
+    res.json({ success: true, data: updatedTemplate });
+};
+
+export const updateQuestion: RequestHandler = async (req, res) => {
+    if (!req.user || req.user.role !== 'ADMIN') throw new AppError('Acesso negado.', 403);
+    const { questionId } = questionIdSchema.parse(req.params);
+    const data = updateChecklistQuestionSchema.parse(req.body);
+
+    const updatedQuestion = await ChecklistTemplateService.updateQuestion(questionId, data);
+    res.json({ success: true, data: updatedQuestion });
 };

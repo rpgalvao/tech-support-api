@@ -31,8 +31,9 @@ export const createTemplate = async (data: { name: string, modelId: string; }) =
     return newTemplate;
 };
 
-export const listAllTemplates = async () => {
+export const listAllTemplates = async (includeInactive: boolean = false) => {
     const checklistTemplates = await prisma.checklistTemplate.findMany({
+        where: includeInactive ? undefined : { active: true },
         include: {
             questions: {
                 orderBy: { order: 'asc' }
@@ -62,6 +63,23 @@ export const getTemplateById = async (id: string) => {
     }
 
     return template;
+};
+
+export const updateTemplate = async (id: string, data: { name?: string, modelId?: string; }) => {
+    const template = await prisma.checklistTemplate.findUnique({ where: { id } });
+    if (!template) throw new AppError('Template não encontrado', 404);
+
+    if (data.name && data.modelId) {
+        const templateExists = await prisma.checklistTemplate.findFirst({
+            where: { name: data.name, modelId: data.modelId, id: { not: id } }
+        });
+        if (templateExists) throw new AppError('Já existe um template com este nome para este modelo', 409);
+    }
+
+    return await prisma.checklistTemplate.update({
+        where: { id },
+        data
+    });
 };
 
 // ==========================================
@@ -96,6 +114,23 @@ export const addQuestionToTemplate = async (templateId: string, data: { text: st
     });
 
     return newQuestion;
+};
+
+export const updateQuestion = async (questionId: string, data: { text?: string, order?: number; }) => {
+    const question = await prisma.checklistQuestion.findUnique({ where: { id: questionId } });
+    if (!question) throw new AppError('Pergunta não encontrada', 404);
+
+    if (data.order && data.order !== question.order) {
+        const orderInUse = await prisma.checklistQuestion.findFirst({
+            where: { templateId: question.templateId, order: data.order }
+        });
+        if (orderInUse) throw new AppError(`A posição ${data.order} já está ocupada neste template`, 409);
+    }
+
+    return await prisma.checklistQuestion.update({
+        where: { id: questionId },
+        data
+    });
 };
 
 // ==========================================
