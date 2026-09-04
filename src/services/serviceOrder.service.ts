@@ -264,7 +264,7 @@ export const cancelServiceOrder = async (id: string, reason: string, loggedUserI
     return { message: 'Ordem de serviço cancelada' };
 };
 
-export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
+export const reopenServiceOrder = async (id: string, loggedUserId: string, reason: string) => { // 🟢 Adicionado 'reason'
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
@@ -290,13 +290,12 @@ export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
         }
     });
 
-    // 🟢 NOVO: Registra quem reabriu e quando
     const eventLogQuery = prisma.serviceOrderEvent.create({
         data: {
             serviceOrderId: id,
             userId: loggedUserId,
             action: 'REABERTURA',
-            notes: 'Ordem de serviço reaberta manualmente pelo sistema.'
+            notes: reason // 🟢 Agora gravamos o motivo real digitado pelo usuário
         }
     });
 

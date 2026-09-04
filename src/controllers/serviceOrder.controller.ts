@@ -1,7 +1,7 @@
 import fs from "fs";
 import { RequestHandler } from "express";
 import * as ServiceOrder from "../services/serviceOrder.service";
-import { addPartToOsSchema, cancelServiceOrderSchema, emailSchema, openServiceOrderSchema, serviceOrderIdSchema, signatureSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
+import { addPartToOsSchema, cancelServiceOrderSchema, emailSchema, openServiceOrderSchema, reopenServiceOrderSchema, serviceOrderIdSchema, signatureSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
 import { AppError } from "../errors/AppError";
 
 export const createServiceOrder: RequestHandler = async (req, res) => {
@@ -45,9 +45,11 @@ export const reopenServiceOrder: RequestHandler = async (req, res) => {
     if (!req.user) throw new AppError('Usuário não autenticado', 401);
 
     const loggedId = req.user.id;
-    const { id } = serviceOrderIdSchema.parse(req.params); // Reaproveitamos a validação de ID!
+    const { id } = serviceOrderIdSchema.parse(req.params);
 
-    const message = await ServiceOrder.reopenServiceOrder(id, loggedId);
+    const { reason } = reopenServiceOrderSchema.parse(req.body);
+
+    const message = await ServiceOrder.reopenServiceOrder(id, loggedId, reason);
     res.json({ success: true, data: message });
 };
 

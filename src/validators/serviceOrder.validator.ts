@@ -53,3 +53,7 @@ export const signatureSchema = z.object({
 export const emailSchema = z.object({
     customEmail: z.email('E-mail inválido').optional()
 });
+
+export const reopenServiceOrderSchema = z.object({
+    reason: z.string().min(5, 'O motivo da reabertura deve ter no mínimo 5 caracteres e é obrigatório.')
+});
