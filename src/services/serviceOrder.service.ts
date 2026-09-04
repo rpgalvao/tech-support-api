@@ -117,12 +117,11 @@ export const getServiceOrderById = async (id: string) => {
         include: {
             equipment: {
                 select: {
-                    // description: true, <-- REMOVIDO PARA NÃO QUEBRAR
                     serial_number: true,
                     received_at: true,
                     returned_at: true,
                     status: true,
-                    model: {          // <-- NOVO: Busca o nome do modelo no catálogo!
+                    model: {
                         select: { name: true }
                     }
                 }
@@ -139,7 +138,15 @@ export const getServiceOrderById = async (id: string) => {
             },
             openedBy: { select: { name: true, email: true } },
             closedBy: { select: { name: true, email: true } },
-            // NOVO: Ao buscar a O.S., já trazemos as respostas do checklist preenchidas/vazias
+
+            // 🟢 AQUI ESTÁ O FIX: Usamos o nome que o Prisma gerou
+            serviceOrderEvents: {
+                orderBy: { created_at: 'desc' },
+                include: {
+                    user: { select: { name: true } }
+                }
+            },
+
             checklist: {
                 include: {
                     answers: { orderBy: { order: 'asc' } }
@@ -160,7 +167,13 @@ export const getServiceOrderById = async (id: string) => {
 
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
-    return serviceOrder;
+    // 🟢 A MÁGICA: Separamos o serviceOrderEvents e devolvemos como "events" para o frontend
+    const { serviceOrderEvents, ...osData } = serviceOrder as any;
+
+    return {
+        ...osData,
+        events: serviceOrderEvents
+    };
 };
 
 export type UpdateOSData = Prisma.ServiceOrderUncheckedUpdateInput & {
@@ -252,7 +265,6 @@ export const cancelServiceOrder = async (id: string, reason: string, loggedUserI
 };
 
 export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
-    // (O conteúdo desta função permanece inalterado, está perfeito)
     const serviceOrder = await prisma.serviceOrder.findUnique({ where: { id } });
     if (!serviceOrder) throw new AppError('Ordem de serviço não encontrada', 404);
 
@@ -278,7 +290,17 @@ export const reopenServiceOrder = async (id: string, loggedUserId: string) => {
         }
     });
 
-    await prisma.$transaction([reopenServiceQuery, updateEquipmentQuery]);
+    // 🟢 NOVO: Registra quem reabriu e quando
+    const eventLogQuery = prisma.serviceOrderEvent.create({
+        data: {
+            serviceOrderId: id,
+            userId: loggedUserId,
+            action: 'REABERTURA',
+            notes: 'Ordem de serviço reaberta manualmente pelo sistema.'
+        }
+    });
+
+    await prisma.$transaction([reopenServiceQuery, updateEquipmentQuery, eventLogQuery]);
 
     return { message: 'Ordem de serviço reaberta com sucesso' };
 };

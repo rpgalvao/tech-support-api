@@ -52,9 +52,10 @@ model User {
   reset_password_expires DateTime?
   created_at             DateTime  @default(now())
 
-  opened_service_orders ServiceOrder[]  @relation("OpenedBy")
-  closed_service_orders ServiceOrder[]  @relation("ClosedBy")
+  opened_service_orders ServiceOrder[]      @relation("OpenedBy")
+  closed_service_orders ServiceOrder[]      @relation("ClosedBy")
   stockMovements        StockMovement[]
+  serviceOrderEvents    ServiceOrderEvent[]
 
   @@map("users")
 }
@@ -137,9 +138,10 @@ model ServiceOrder {
   openedBy User  @relation("OpenedBy", fields: [openedById], references: [id])
   closedBy User? @relation("ClosedBy", fields: [closedById], references: [id])
 
-  equipment      Equipment?      @relation(fields: [equipmentId], references: [id])
-  customer       Customer        @relation(fields: [customerId], references: [id])
-  stockMovements StockMovement[]
+  equipment          Equipment?          @relation(fields: [equipmentId], references: [id])
+  customer           Customer            @relation(fields: [customerId], references: [id])
+  stockMovements     StockMovement[]
+  serviceOrderEvents ServiceOrderEvent[]
 
   @@map("service_orders")
 }
@@ -291,4 +293,18 @@ model StockMovement {
   serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id])
 
   @@map("stock_movements")
+}
+
+model ServiceOrderEvent {
+  id             String   @id @default(uuid())
+  serviceOrderId String
+  userId         String
+  action         String // Ex: "REABERTURA", "CANCELAMENTO", "FINALIZACAO"
+  notes          String?
+  created_at     DateTime @default(now())
+
+  serviceOrder ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@map("service_order_events")
 }
