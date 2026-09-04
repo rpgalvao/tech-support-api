@@ -211,6 +211,23 @@
 			{{os.solution_description}}
 		</div>
 
+		{{#if hasReopenEvents}}
+			<div
+				style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px;"
+			>
+				<h4 style="color: #444; margin-bottom: 5px;">Histórico de
+					Reaberturas</h4>
+				<ul style="font-size: 12px; color: #555; padding-left: 15px;">
+					{{#each reopenEvents}}
+						<li style="margin-bottom: 4px;">
+							<strong>{{this.date}} - {{this.user}}:</strong>
+							{{this.reason}}
+						</li>
+					{{/each}}
+				</ul>
+			</div>
+		{{/if}}
+
 		{{#if os.technical_notes}}
 			<div
 				style="margin-top: 10px; padding: 8px; background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 4px;"

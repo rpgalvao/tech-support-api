@@ -419,39 +419,48 @@ export const saveClientSignature = async (id: string, signatureBase64: string) =
 };
 
 export const generateServiceOrderPdf = async (id: string) => {
-    // 1. Busca todos os dados da O.S., trazendo os relacionamentos essenciais
+    // 1. Busca todos os dados da O.S. e agora inclui o histórico de eventos
     const os = await prisma.serviceOrder.findUnique({
         where: { id },
         include: {
             customer: true,
             equipment: { include: { model: true } },
             parts_replaced: { include: { part: true } },
-            closedBy: true // Para pegarmos o nome do técnico
+            closedBy: true,
+            serviceOrderEvents: { // 🟢 Buscando o histórico para rastrear reaberturas
+                orderBy: { created_at: 'asc' },
+                include: { user: { select: { name: true } } }
+            }
         }
     });
 
     if (!os) throw new AppError('Ordem de serviço não encontrada', 404);
 
-    // Regra de negócio: Idealmente, apenas O.S. finalizadas geram o documento oficial
     if (os.status !== 'FINALIZADA') {
         throw new AppError('Apenas Ordens de Serviço finalizadas podem gerar o relatório PDF.', 400);
     }
+
+    // 🟢 Filtra exclusivamente os eventos de reabertura para injetar no documento
+    const reopenEvents = os.serviceOrderEvents
+        .filter(event => event.action === 'REABERTURA')
+        .map(event => ({
+            date: new Date(event.created_at).toLocaleDateString('pt-BR') + ' às ' + new Date(event.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            user: event.user.name,
+            reason: event.notes || 'Não informado'
+        }));
 
     // 2. A Matemática: Calculamos o valor total das peças usadas
     const partsTotal = os.parts_replaced.reduce((acc: any, curr: any) => {
         return acc + (Number(curr.unit_price) * curr.quantity);
     }, 0);
 
-    // E somamos com os custos adicionais (convertendo o Decimal do Prisma para Number)
     const labor = Number(os.labor_cost);
     const travel = Number(os.travel_cost);
     const accommodation = Number(os.accommodation_cost);
     const grandTotal = partsTotal + labor + travel + accommodation;
 
-    // 3. Auxiliar de Formatação (Deixa os números como moeda brasileira ex: 150,00)
     const formatCurrency = (val: number) => val.toFixed(2).replace('.', ',');
 
-    // 3.1 Carrega a logo da empresa e converte para Base64
     const logoPath = path.resolve(process.cwd(), 'src', 'assets', 'logo_dwl.png');
     let logoBase64 = '';
 
@@ -461,6 +470,10 @@ export const generateServiceOrderPdf = async (id: string) => {
     } catch (err) {
         console.warn('Logo da empresa não encontrada na pasta assets.');
     }
+
+    // 🟢 FIX DA DATA: Usar a data exata em que a O.S. foi fechada
+    const dateToPrint = os.closed_at ? new Date(os.closed_at) : new Date();
+    const formattedClosingDate = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(dateToPrint);
 
     // 4. Monta o Objeto Exato que o arquivo os-report.hbs está esperando
     const templateData = {
@@ -500,16 +513,16 @@ export const generateServiceOrderPdf = async (id: string) => {
             grand_total: formatCurrency(grandTotal)
         },
         logo_url: logoBase64,
-        client_signature: os.client_signature, // Se tiver assinatura em Base64, vai embutir na imagem
+        client_signature: os.client_signature,
         tech: {
             name: os.closedBy?.name || 'Técnico Responsável',
             signature: os.closedBy?.signature_url
         },
-        // Data formatada (Ex: 13 de agosto de 2026)
-        currentDate: new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date())
+        currentDate: formattedClosingDate, // 🟢 Data estática e imutável do encerramento
+        hasReopenEvents: reopenEvents.length > 0, // 🟢 Flag para exibir ou ocultar a seção no template
+        reopenEvents // 🟢 Array com os dados das reaberturas
     };
 
-    // 5. Instancia o Provider e gera o PDF
     const pdfProvider = new PdfProvider();
     const fileName = `OS-${os.number}-${new Date().getTime()}.pdf`;
 
@@ -519,7 +532,6 @@ export const generateServiceOrderPdf = async (id: string) => {
         fileName
     });
 
-    // 6. Retorna o caminho estático para o frontend abrir em nova aba
     return setFullURL(`/uploads/os_pdfs/${fileName}`);
 };
 
