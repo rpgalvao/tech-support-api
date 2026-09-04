@@ -18,14 +18,13 @@ export const getDashboardMetrics = async () => {
     const totalEquipments = await prisma.equipment.count();
 
     // ==========================================
-    // 2. DADOS DO GRÁFICO (Últimos 6 meses)
+    // 2. DADOS DO GRÁFICO DE BARRAS (Últimos 6 meses)
     // ==========================================
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
     sixMonthsAgo.setDate(1);
     sixMonthsAgo.setHours(0, 0, 0, 0);
 
-    // Pega todas as ordens que nasceram OU foram modificadas nos últimos 6 meses
     const recentOrders = await prisma.serviceOrder.findMany({
         where: {
             OR: [
@@ -45,19 +44,14 @@ export const getDashboardMetrics = async () => {
         const targetYear = d.getFullYear();
         const monthName = d.toLocaleString('pt-BR', { month: 'short' });
 
-        // Abertas: Quantas ordens FORAM CRIADAS neste mês exato?
         const abertasNoMes = recentOrders.filter((order: any) =>
             order.opened_at.getMonth() === targetMonth &&
             order.opened_at.getFullYear() === targetYear
         ).length;
 
-        // Finalizadas: Quantas ordens FORAM CONCLUÍDAS neste mês exato?
         const finalizadasNoMes = recentOrders.filter((order: any) => {
             if (order.status !== 'FINALIZADA') return false;
-
-            // Se o sistema marcou a data de fechamento, usamos ela. Senão, usamos a última atualização.
             const dateToConsider = order.closed_at ? order.closed_at : order.updated_at;
-
             return dateToConsider.getMonth() === targetMonth &&
                 dateToConsider.getFullYear() === targetYear;
         }).length;
@@ -69,7 +63,49 @@ export const getDashboardMetrics = async () => {
         });
     }
 
-    // 3. ATIVIDADES RECENTES (Últimas 5 atualizadas)
+    // ==========================================
+    // 3. MÉTRICAS DE PERFORMANCE POR TÉCNICO
+    // ==========================================
+    const technicianPerformanceRaw = await prisma.serviceOrder.findMany({
+        where: {
+            status: 'FINALIZADA',
+            closed_at: { not: null },
+            closedById: { not: null }
+        },
+        select: {
+            opened_at: true,
+            closed_at: true,
+            closedBy: { select: { name: true } }
+        }
+    });
+
+    const technicianStats: Record<string, { count: number, totalTimeHours: number; }> = {};
+
+    technicianPerformanceRaw.forEach(os => {
+        const techName = os.closedBy?.name || 'Desconhecido';
+        if (!technicianStats[techName]) {
+            technicianStats[techName] = { count: 0, totalTimeHours: 0 };
+        }
+
+        technicianStats[techName].count += 1;
+
+        // Calcula a diferença em horas entre abertura e fechamento
+        const diffMs = os.closed_at!.getTime() - os.opened_at.getTime();
+        const diffHours = diffMs / (1000 * 60 * 60);
+        technicianStats[techName].totalTimeHours += diffHours;
+    });
+
+    const techMetrics = Object.entries(technicianStats)
+        .map(([name, stats]) => ({
+            name,
+            osCount: stats.count,
+            avgResolutionTimeHours: Math.round(stats.totalTimeHours / stats.count)
+        }))
+        .sort((a, b) => b.osCount - a.osCount); // Ordena pelos que mais fecharam O.S.
+
+    // ==========================================
+    // 4. ATIVIDADES RECENTES
+    // ==========================================
     const recentActivities = await prisma.serviceOrder.findMany({
         take: 5,
         orderBy: { updated_at: 'desc' },
@@ -78,12 +114,8 @@ export const getDashboardMetrics = async () => {
             number: true,
             status: true,
             updated_at: true,
-            equipment: {
-                select: { model: { select: { name: true } } }
-            },
-            customer: {
-                select: { name: true }
-            }
+            equipment: { select: { model: { select: { name: true } } } },
+            customer: { select: { name: true } }
         }
     });
 
@@ -93,6 +125,7 @@ export const getDashboardMetrics = async () => {
         totalEquipments,
         finishedOrdersThisMonth,
         chartData,
+        techMetrics, // 🟢 NOVA MÉTRICA DEVOLVIDA
         recentActivities
     };
 };
