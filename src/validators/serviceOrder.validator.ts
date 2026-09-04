@@ -22,9 +22,9 @@ export const updateServiceOrderSchema = z.object({
     signer_name: z.string().min(2, 'O nome do cliente precisa ter pelo menos 2 caracteres').optional(),
     status: z.enum(['ABERTA', 'FINALIZADA', 'CANCELADA']).optional(),
     cancellation_reason: z.string().optional(),
-    labor_cost: z.number().min(0, 'O valor não pode ser negativo.').optional(),
-    travel_cost: z.number().min(0, 'O valor não pode ser negativo.').optional(),
-    accommodation_cost: z.number().min(0, 'O valor não pode ser negativo.').optional()
+    labor_cost: z.coerce.number().min(0, 'O valor não pode ser negativo.').optional(),
+    travel_cost: z.coerce.number().min(0, 'O valor não pode ser negativo.').optional(),
+    accommodation_cost: z.coerce.number().min(0, 'O valor não pode ser negativo.').optional()
 });
 
 export const cancelServiceOrderSchema = z.object({
@@ -46,7 +46,6 @@ export const addPartToOsSchema = z.object({
 });
 
 export const signatureSchema = z.object({
-    // A string Base64 costuma ser grande, então garantimos que não venha vazia
     signature: z.string().min(20, 'A string da assinatura em Base64 é inválida ou muito curta.')
 });
 
