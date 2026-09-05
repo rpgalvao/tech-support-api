@@ -419,7 +419,7 @@ export const saveClientSignature = async (id: string, signatureBase64: string) =
 };
 
 export const generateServiceOrderPdf = async (id: string) => {
-    // 1. Busca todos os dados da O.S. e agora inclui o histórico de eventos
+    // 1. Busca todos os dados da O.S. (agora incluindo o checklist completo)
     const os = await prisma.serviceOrder.findUnique({
         where: { id },
         include: {
@@ -427,9 +427,13 @@ export const generateServiceOrderPdf = async (id: string) => {
             equipment: { include: { model: true } },
             parts_replaced: { include: { part: true } },
             closedBy: true,
-            serviceOrderEvents: { // 🟢 Buscando o histórico para rastrear reaberturas
+            serviceOrderEvents: {
                 orderBy: { created_at: 'asc' },
                 include: { user: { select: { name: true } } }
+            },
+            // 🟢 NOVO: Trazendo o checklist e as respostas ordenadas
+            checklist: {
+                include: { answers: { orderBy: { order: 'asc' } } }
             }
         }
     });
@@ -440,7 +444,6 @@ export const generateServiceOrderPdf = async (id: string) => {
         throw new AppError('Apenas Ordens de Serviço finalizadas podem gerar o relatório PDF.', 400);
     }
 
-    // 🟢 Filtra exclusivamente os eventos de reabertura para injetar no documento
     const reopenEvents = os.serviceOrderEvents
         .filter(event => event.action === 'REABERTURA')
         .map(event => ({
@@ -449,7 +452,19 @@ export const generateServiceOrderPdf = async (id: string) => {
             reason: event.notes || 'Não informado'
         }));
 
-    // 2. A Matemática: Calculamos o valor total das peças usadas
+    // 🟢 PREPARANDO DADOS DO CHECKLIST PARA O TEMPLATE
+    let checklistData = null;
+    if (os.checklist && os.checklist.answers.length > 0) {
+        checklistData = {
+            notes: os.checklist.notes,
+            answers: os.checklist.answers.map(ans => ({
+                question: ans.question_text,
+                is_ok: ans.is_ok,
+                comment: ans.comment || '-'
+            }))
+        };
+    }
+
     const partsTotal = os.parts_replaced.reduce((acc: any, curr: any) => {
         return acc + (Number(curr.unit_price) * curr.quantity);
     }, 0);
@@ -471,11 +486,9 @@ export const generateServiceOrderPdf = async (id: string) => {
         console.warn('Logo da empresa não encontrada na pasta assets.');
     }
 
-    // 🟢 FIX DA DATA: Usar a data exata em que a O.S. foi fechada
     const dateToPrint = os.closed_at ? new Date(os.closed_at) : new Date();
     const formattedClosingDate = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(dateToPrint);
 
-    // 4. Monta o Objeto Exato que o arquivo os-report.hbs está esperando
     const templateData = {
         os: {
             number: os.number,
@@ -518,9 +531,13 @@ export const generateServiceOrderPdf = async (id: string) => {
             name: os.closedBy?.name || 'Técnico Responsável',
             signature: os.closedBy?.signature_url
         },
-        currentDate: formattedClosingDate, // 🟢 Data estática e imutável do encerramento
-        hasReopenEvents: reopenEvents.length > 0, // 🟢 Flag para exibir ou ocultar a seção no template
-        reopenEvents // 🟢 Array com os dados das reaberturas
+        currentDate: formattedClosingDate,
+        hasReopenEvents: reopenEvents.length > 0,
+        reopenEvents,
+
+        // 🟢 NOVAS VARIÁVEIS INJETADAS NO HANDLEBARS
+        hasChecklist: !!checklistData,
+        checklist: checklistData
     };
 
     const pdfProvider = new PdfProvider();

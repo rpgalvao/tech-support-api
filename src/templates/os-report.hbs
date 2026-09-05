@@ -151,6 +151,20 @@
 				font-style: italic;
 				color: #70808f;
 			}
+			/* 🟢 Força a criação de uma nova página no PDF */
+			.page-break {
+				page-break-before: always;
+			}
+			.checklist-status {
+				font-weight: bold;
+				text-align: center;
+			}
+			.status-ok {
+				color: #16a34a;
+			}
+			.status-nok {
+				color: #dc2626;
+			}
 		</style>
 	</head>
 	<body>
@@ -364,6 +378,85 @@
 			Pinhais,
 			{{currentDate}}
 		</div>
+
+<!-- 🟢 SEÇÃO DO CHECKLIST (Renderizada apenas se houver checklist respondido) -->
+		{{#if hasChecklist}}
+		<div class="page-break">
+			
+			<!-- Recria o cabeçalho para a nova página não ficar órfã de contexto -->
+			<div class="header">
+				<div class="header-title">
+					{{#if logo_url}}
+						<img src="{{logo_url}}" alt="DWL Diagnóstica" />
+					{{else}}
+						<h2>DWL DIAGNÓSTICA</h2>
+						<span>ASSISTÊNCIA TÉCNICA ESPECIALIZADA</span>
+					{{/if}}
+				</div>
+				<div class="header-info">
+					Tel: (41) 3014-3636<br />
+					E-mail: suporte@dwldiagnostica.com.br
+				</div>
+			</div>
+
+			<div class="title">
+				Checklist de Manutenção Nº: {{os.number}}/{{year}}
+			</div>
+
+			<div class="section-title">RESULTADOS DA INSPEÇÃO</div>
+			<table>
+				<thead>
+					<tr style="background-color: #F8FAFC;">
+						<th style="width: 45%;">Item Verificado</th>
+						<th style="width: 10%;">Status</th>
+						<th style="width: 45%;">Observação</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{#each checklist.answers}}
+					<tr>
+						<td>{{this.question}}</td>
+						<td class="checklist-status {{#if this.is_ok}}status-ok{{else}}status-nok{{/if}}">
+							{{#if this.is_ok}}OK{{else}}NÃO OK{{/if}}
+						</td>
+						<td>{{this.comment}}</td>
+					</tr>
+					{{/each}}
+				</tbody>
+			</table>
+
+			{{#if checklist.notes}}
+			<div class="section-title">OBSERVAÇÕES GERAIS DO CHECKLIST</div>
+			<div class="text-box">
+				{{checklist.notes}}
+			</div>
+			{{/if}}
+			
+			<div class="signatures">
+				<div class="signature-box">
+					{{#if tech.signature}}
+						<img
+							src="{{tech.signature}}"
+							class="signature-img"
+							alt="Assinatura Técnico"
+						/>
+					{{/if}}
+					<div class="signature-line">
+						Técnico Responsável<br />
+						<span
+							style="font-size: 9px; color: #70808F;"
+						>{{tech.name}}</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="footer">
+				Pinhais,
+				{{currentDate}}
+			</div>
+
+		</div> 
+		{{/if}}
 
 	</body>
 </html>
