@@ -107,3 +107,9 @@ export const sendEmail: RequestHandler = async (req, res, next) => {
 
     res.json({ success: true, message: result.message, data: { sent_to: result.recipient } });
 };
+
+export const generateLabel: RequestHandler = async (req, res) => {
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    const labelUrl = await ServiceOrder.generateNiimbotLabel(id);
+    res.json({ success: true, labelUrl });
+};

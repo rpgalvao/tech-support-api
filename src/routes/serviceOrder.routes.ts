@@ -27,4 +27,7 @@ route.get('/:id/export/pdf', ServiceOrderController.exportPdf);
 // Rota para disparar o e-mail com o PDF em anexo
 route.post('/:id/send-email', ServiceOrderController.sendEmail);
 
+// Rota para gerar a etiqueta de QRCode
+route.get('/:id/label', ServiceOrderController.generateLabel);
+
 export default route;
