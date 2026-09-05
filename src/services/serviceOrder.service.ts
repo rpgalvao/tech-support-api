@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import handlebars from 'handlebars';
+import QRCode from 'qrcode';
 import { AppError } from "../errors/AppError";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
@@ -614,4 +615,65 @@ export const sendServiceOrderEmail = async (id: string, customEmail?: string) =>
     });
 
     return { message: 'E-mail enviado com sucesso!', recipient: recipientEmail };
+};
+
+export const generateNiimbotLabel = async (id: string) => {
+    const os = await prisma.serviceOrder.findUnique({
+        where: { id },
+        include: { equipment: true }
+    });
+
+    if (!os) throw new AppError('Ordem de serviço não encontrada', 404);
+
+    const osUrl = process.env.FRONTEND_URL
+        ? `${process.env.FRONTEND_URL}/ordens/${os.id}`
+        : `https://sistema.dwldiagnostica.com.br/ordens/${os.id}`;
+
+    const qrCodeDataUrl = await QRCode.toDataURL(osUrl, { margin: 1 });
+
+    const closedDate = os.closed_at ? new Date(os.closed_at) : new Date();
+    const currentDateStr = closedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    const nextDate = new Date(closedDate);
+    nextDate.setFullYear(nextDate.getFullYear() + 1);
+    const nextDateStr = `${String(nextDate.getMonth() + 1).padStart(2, '0')}/${nextDate.getFullYear()}`;
+
+    let osTypeStr = 'Corretiva';
+    if (os.type === 'PREVENTIVA') osTypeStr = 'Preventiva';
+    if (os.type === 'INSTALACAO') osTypeStr = 'Instalação';
+
+    // 🟢 Busca e converte a logo para a etiqueta
+    const logoPath = path.resolve(process.cwd(), 'src', 'assets', 'logo_dwl.png');
+    let logoBase64 = '';
+    try {
+        const logoBuffer = fs.readFileSync(logoPath);
+        logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    } catch (err) {
+        console.warn('Logo da empresa não encontrada na pasta assets.');
+    }
+
+    const osYear = new Date(os.opened_at).getFullYear();
+
+    const templateData = {
+        osNumber: `${os.number}/${osYear}`,
+        osType: osTypeStr,
+        currentDate: currentDateStr,
+        nextDate: os.type === 'PREVENTIVA' ? nextDateStr : '-',
+        qrCodeDataUrl,
+        logo_url: logoBase64
+    };
+
+    const pdfProvider = new PdfProvider();
+    const fileName = `ETIQUETA-${os.number}-${new Date().getTime()}.pdf`;
+
+    await pdfProvider.generatePdf({
+        templateName: 'label',
+        data: templateData,
+        fileName,
+        width: '50mm', // 🟢 Ajustado para 50mm
+        height: '30mm',
+        margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+
+    return setFullURL(`/uploads/os_pdfs/${fileName}`);
 };
