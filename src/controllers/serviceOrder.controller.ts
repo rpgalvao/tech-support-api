@@ -112,3 +112,11 @@ export const generateLabel: RequestHandler = async (req, res) => {
     const labelUrl = await ServiceOrder.generateNiimbotLabel(id);
     res.json({ success: true, labelUrl });
 };
+
+export const viewPdfFromQr: RequestHandler = async (req, res, next) => {
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    const pdfUrl = await ServiceOrder.generateServiceOrderPdf(id);
+
+    // 🟢 O redirecionamento mágico: empurra o celular direto para o arquivo estático
+    res.redirect(pdfUrl);
+};

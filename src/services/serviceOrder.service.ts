@@ -626,7 +626,7 @@ export const generateNiimbotLabel = async (id: string) => {
     if (!os) throw new AppError('Ordem de serviço não encontrada', 404);
 
     const baseUrl = process.env.BACKEND_URL || 'https://tech-support-api-zk62.onrender.com';
-    const osUrl = `${baseUrl}/api/serviceorder/${os.id}/export/pdf`;
+    const osUrl = `${baseUrl}/api/serviceorder/${os.id}/qr-pdf`;
 
     const qrCodeDataUrl = await QRCode.toDataURL(osUrl, { margin: 1 });
 

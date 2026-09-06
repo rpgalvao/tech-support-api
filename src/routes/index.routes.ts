@@ -34,7 +34,8 @@ route.get('/ping', (req, res) => {
 route.use('/login', loginLimiter, authRoute);
 
 // 🟢 ROTA PÚBLICA PARA O QR CODE (Bypassa o JWT por estar ANTES do middleware)
-route.get('/serviceorder/:id/export/pdf', ServiceOrderController.exportPdf);
+route.get('/serviceorder/:id/export/pdf', ServiceOrderController.exportPdf); // Usada pelo React
+route.get('/serviceorder/:id/qr-pdf', ServiceOrderController.viewPdfFromQr); // Usada pelo Celular
 
 // 🛡️ BARREIRA DE SEGURANÇA
 route.use(authMiddleware);
