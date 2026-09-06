@@ -89,7 +89,6 @@ export const saveClientSignature: RequestHandler = async (req, res) => {
 };
 
 export const exportPdf: RequestHandler = async (req, res, next) => {
-    if (!req.user) throw new AppError('Usuário não autenticado', 401);
 
     const { id } = serviceOrderIdSchema.parse(req.params);
     const pdfUrl = await ServiceOrder.generateServiceOrderPdf(id);
