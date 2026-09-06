@@ -13,12 +13,10 @@ import partRoute from './part.routes';
 import stockMovementRoute from './stockMovement.routes';
 import { adminMiddleware } from "../middlewares/admin.middleware";
 import rateLimit from "express-rate-limit";
+import * as ServiceOrderController from "../controllers/serviceOrder.controller";
 
 const route = Router();
 
-// ==========================================
-// 🚦 2. RATE LIMITING: Radar de Força Bruta
-// ==========================================
 const loginLimiter = rateLimit({
     max: 5,
     message: {
@@ -29,13 +27,19 @@ const loginLimiter = rateLimit({
     legacyHeaders: false
 });
 
-// Health check route
 route.get('/ping', (req, res) => {
     res.json({ pong: true });
 });
 
 route.use('/login', loginLimiter, authRoute);
+
+// 🟢 ROTA PÚBLICA PARA O QR CODE (Bypassa o JWT por estar ANTES do middleware)
+route.get('/serviceorder/:id/export/pdf', ServiceOrderController.exportPdf);
+
+// 🛡️ BARREIRA DE SEGURANÇA
 route.use(authMiddleware);
+
+// Rotas Protegidas
 route.use('/user', userRoute);
 route.use('/dashboard', dashboardRoute);
 route.use('/customer', customerRoute);
