@@ -16,6 +16,8 @@ route.patch('/:id/reopen', ServiceOrderController.reopenServiceOrder);
 route.patch('/:id/checklist', ServiceOrderController.updateChecklist);
 route.post('/:id/parts', ServiceOrderController.addPart);
 route.patch('/:id/signature', ServiceOrderController.saveClientSignature);
+route.post('/:id/images', upload.single('file'), ServiceOrderController.uploadImage);
+route.delete('/images/:imageId', ServiceOrderController.removeImage);
 
 route.post('/:id/send-email', ServiceOrderController.sendEmail);
 route.get('/:id/label', ServiceOrderController.generateLabel);
