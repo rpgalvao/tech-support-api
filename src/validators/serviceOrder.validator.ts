@@ -56,3 +56,11 @@ export const emailSchema = z.object({
 export const reopenServiceOrderSchema = z.object({
     reason: z.string().min(5, 'O motivo da reabertura deve ter no mínimo 5 caracteres e é obrigatório.')
 });
+
+export const uploadOsImageSchema = z.object({
+    tag: z.enum(['ANTES', 'DURANTE', 'DEPOIS'])
+});
+
+export const removeImageSchema = z.object({
+    imageId: z.uuid()
+});

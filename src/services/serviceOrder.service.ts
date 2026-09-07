@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import handlebars from 'handlebars';
 import QRCode from 'qrcode';
+import { DiskStorageProvider } from '../providers/StorageProvider';
 import { AppError } from "../errors/AppError";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../libs/prisma";
@@ -153,6 +154,7 @@ export const getServiceOrderById = async (id: string) => {
                     answers: { orderBy: { order: 'asc' } }
                 }
             },
+            images: { orderBy: { created_at: 'asc' } },
             parts_replaced: {
                 select: {
                     id: true,
@@ -173,7 +175,11 @@ export const getServiceOrderById = async (id: string) => {
 
     return {
         ...osData,
-        events: serviceOrderEvents
+        events: serviceOrderEvents,
+        images: osData.images?.map((img: any) => ({
+            ...img,
+            url: setFullURL(`/uploads/os_images/${img.url}`)
+        }))
     };
 };
 
@@ -675,4 +681,42 @@ export const generateNiimbotLabel = async (id: string) => {
     });
 
     return setFullURL(`/uploads/os_pdfs/${fileName}`);
+};
+
+export const addServiceOrderImage = async (osId: string, tag: 'ANTES' | 'DURANTE' | 'DEPOIS', tmpFileName: string) => {
+    const os = await prisma.serviceOrder.findUnique({ where: { id: osId } });
+    if (!os) throw new AppError('Ordem de serviço não encontrada', 404);
+
+    const storageProvider = new DiskStorageProvider();
+    const finalFileName = `os-${os.number}-${new Date().getTime()}`;
+
+    // Converte para WebP e move da pasta tmp para a pasta os_images
+    const savedFileName = await storageProvider.saveFile(tmpFileName, 'os_images', finalFileName);
+
+    const image = await prisma.serviceOrderImage.create({
+        data: {
+            serviceOrderId: osId,
+            tag,
+            url: savedFileName
+        }
+    });
+
+    return {
+        ...image,
+        url: setFullURL(`/uploads/os_images/${image.url}`)
+    };
+};
+
+export const removeServiceOrderImage = async (imageId: string) => {
+    const image = await prisma.serviceOrderImage.findUnique({ where: { id: imageId } });
+    if (!image) throw new AppError('Imagem não encontrada', 404);
+
+    // Remove fisicamente o arquivo do servidor
+    const storageProvider = new DiskStorageProvider();
+    await storageProvider.deleteFile(image.url, 'os_images');
+
+    // Remove a referência do banco de dados
+    await prisma.serviceOrderImage.delete({ where: { id: imageId } });
+
+    return { message: 'Imagem removida com sucesso' };
 };

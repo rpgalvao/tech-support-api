@@ -37,6 +37,12 @@ enum ServiceOrderStatus {
   CANCELADA
 }
 
+enum ImageTag {
+  ANTES
+  DURANTE
+  DEPOIS
+}
+
 // 1. Mudamos de Technician para User e o mapeamento para "users"
 model User {
   id                     String    @id @default(uuid())
@@ -142,6 +148,7 @@ model ServiceOrder {
   customer           Customer            @relation(fields: [customerId], references: [id])
   stockMovements     StockMovement[]
   serviceOrderEvents ServiceOrderEvent[]
+  images             ServiceOrderImage[]
 
   @@map("service_orders")
 }
@@ -307,4 +314,16 @@ model ServiceOrderEvent {
   user         User         @relation(fields: [userId], references: [id])
 
   @@map("service_order_events")
+}
+
+model ServiceOrderImage {
+  id         String   @id @default(uuid())
+  url        String // O caminho físico ou URL da imagem
+  tag        ImageTag // ANTES, DURANTE ou DEPOIS
+  created_at DateTime @default(now())
+
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  serviceOrderId String
+
+  @@map("service_order_images")
 }

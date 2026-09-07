@@ -1,7 +1,7 @@
 import fs from "fs";
 import { RequestHandler } from "express";
 import * as ServiceOrder from "../services/serviceOrder.service";
-import { addPartToOsSchema, cancelServiceOrderSchema, emailSchema, openServiceOrderSchema, reopenServiceOrderSchema, serviceOrderIdSchema, signatureSchema, updateChecklistSchema, updateServiceOrderSchema } from "../validators/serviceOrder.validator";
+import { addPartToOsSchema, cancelServiceOrderSchema, emailSchema, openServiceOrderSchema, removeImageSchema, reopenServiceOrderSchema, serviceOrderIdSchema, signatureSchema, updateChecklistSchema, updateServiceOrderSchema, uploadOsImageSchema } from "../validators/serviceOrder.validator";
 import { AppError } from "../errors/AppError";
 
 export const createServiceOrder: RequestHandler = async (req, res) => {
@@ -119,4 +119,27 @@ export const viewPdfFromQr: RequestHandler = async (req, res, next) => {
 
     // 🟢 O redirecionamento mágico: empurra o celular direto para o arquivo estático
     res.redirect(pdfUrl);
+};
+
+export const uploadImage: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const { id } = serviceOrderIdSchema.parse(req.params);
+    const { tag } = uploadOsImageSchema.parse(req.body);
+
+    if (!req.file) {
+        throw new AppError('Nenhum arquivo de imagem foi enviado.', 400);
+    }
+
+    const image = await ServiceOrder.addServiceOrderImage(id, tag as any, req.file.filename);
+    res.status(201).json({ success: true, data: image });
+};
+
+export const removeImage: RequestHandler = async (req, res) => {
+    if (!req.user) throw new AppError('Usuário não autenticado', 401);
+
+    const { imageId } = removeImageSchema.parse(req.params);
+    const result = await ServiceOrder.removeServiceOrderImage(imageId);
+
+    res.json({ success: true, data: result });
 };
